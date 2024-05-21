@@ -1,0 +1,12 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/1185818338_856769692_223132457.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_3842457321_945930250.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_784179552_1283249956.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_3351756673_2261102007.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_3441840753_3349297484.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_784179552_2093971600.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_1926406983_890323283.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_478571348_2412191534.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_784179552_2442955078.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_179088145_3029639417.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/WurstchenOverview/624642324_784179552_1739642661.mp4'

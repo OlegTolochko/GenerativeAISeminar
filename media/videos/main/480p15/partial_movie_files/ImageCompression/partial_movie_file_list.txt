@@ -1,0 +1,9 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/1185818338_4195680671_223132457.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_784179552_1131070283.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_711315687_2526447016.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_784179552_1877244165.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_340564024_3233768525.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_784179552_403129774.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_281224192_4163212565.mp4'
+file 'file:C:/Users/olegt/PycharmProjects/GenerativeAISeminar/media/videos/main/480p15/partial_movie_files/ImageCompression/624642324_784179552_902734013.mp4'
