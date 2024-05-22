@@ -3,6 +3,7 @@ from manim import config
 
 # Set the background color
 config.background_color = "#0D1219"
+#Config for white background:
 #config.background_color = WHITE
 #Tex.set_default(color=BLACK)
 #MathTex.set_default(color=BLACK)
@@ -193,7 +194,6 @@ class VQGANStructure(Scene):
         # Arrange the vectors next to each other
         vectors = VGroup(matrix1, matrix2, matrix3, matrix4).arrange(RIGHT, buff=0.2)
 
-        # Position the vectors inside the codebook square
         vectors.move_to(codebook.get_center())
 
         # Add the vectors to the scene
@@ -214,18 +214,48 @@ class VQGANStructure(Scene):
         self.play(z_quant_text.animate.next_to(z_quant, DOWN))
         self.wait(2)
 
+        matrix1_copy = matrix1.copy()
+        zoom_group.add(matrix1_copy)
 
-        self.play(matrix1.animate.move_to(z_quant.get_center()).scale(1.5), FadeOut(z_quant))
-        vq_z_quant_arrow = Arrow(vq.get_right(), matrix1.get_left(), buff=0.1)
+        self.play(matrix1_copy.animate.move_to(z_quant.get_center()).scale(1.5), FadeOut(z_quant))
+        vq_z_quant_arrow = Arrow(vq.get_right(), matrix1_copy.get_left(), buff=0.1)
         self.play(GrowArrow(vq_z_quant_arrow))
         self.wait(2)
 
         self.play(FadeOut(vq_matrix1__arrow))
         zoom_group.add(vectors, vq_z_quant_arrow, z_vq_arrow)
 
+        self.remove(z_quant)
+        zoom_group.remove(z_quant)
         self.wait(2)
-        self.play(zoom_group.animate.scale(1/1.5), FadeIn(fade_out_group))
+        self.play(zoom_group.animate.scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
 
         self.wait(2)
-# To render the scene, run the following command in your terminal:
-# manim -pql <filename>.py VQGANStructure
+        matrix1_decoder_arrow = Arrow(matrix1_copy.get_right(), decoder.get_left(), buff=0.1)
+        self.play(GrowArrow(matrix1_decoder_arrow))
+        self.wait(2)
+
+        #matrix1_copy_copy = matrix1_copy.copy()
+        #self.play(matrix1_copy_copy.animate.move_to(decoder_table.get_center()).scale(0))
+        #self.remove(matrix1_copy_copy)
+
+        values = ["3.9", "2.5", "1.3", "0.4", "3.4", "3.9", "1.2", "2.0"]
+
+        # Create text objects for the values at the center of the table
+        value_texts = [Text(value).scale(0.25).move_to(matrix1_copy.get_center()) for value in values]
+
+        # Animate the values moving to each cell simultaneously
+        animations = []
+        for i, value_text in enumerate(value_texts):
+            cell = decoder_table.get_cell((i + 1, 1))
+            animations.append(value_text.animate.move_to(cell.get_center()))
+        self.play(*animations)
+
+        # Ensure the value_texts are properly added to the table cells
+        for i, value_text in enumerate(value_texts):
+            cell = decoder_table.get_cell((i + 1, 1))
+            value_text.move_to(cell.get_center())  # Ensure the text is correctly positioned in the cell
+            self.add(value_text)
+            decoder_table.add(value_text)  # Add the text to the table
+
+        self.wait(2)
