@@ -24,13 +24,13 @@ def addWatermark():
 class VQGANStructure(Scene):
     def construct(self):
         # Colors
-        encoder_input_color = GREEN
-        decoder_output_color = YELLOW
-        encoder_color = WHITE
+        encoder_input_color = WHITE
+        decoder_output_color = WHITE
+        encoder_color = GREEN
         z_color = BLUE
         vq_color = PURPLE
         codebook_color = BLUE_E
-        decoder_color = WHITE
+        decoder_color = YELLOW
 
         num_rows = 8
         table_data = [["a"] for _ in range(num_rows)]
@@ -264,21 +264,23 @@ class VQGANStructure(Scene):
 
 import random
 
-class PixelGrid(VGroup):
-    def __init__(self, rows=4, cols=4, cell_size=1, **kwargs):
-        super().__init__(**kwargs)
+from manim import *
+import random
 
-        # Create a grid of squares with random colors
+class PixelGrid(VGroup):
+    def __init__(self, rows=4, cols=4, cell_size=1, colors=None, **kwargs):
+        super().__init__(**kwargs)
+        self.colors = colors or self.generate_random_colors(rows, cols)
+
+        # Create a grid of squares with specified colors
         for i in range(rows):
             for j in range(cols):
                 # Create a square
                 square = Square(side_length=cell_size)
                 # Set the position of the square
                 square.move_to(np.array([j * cell_size, -i * cell_size, 0]))
-                # Generate a random color
-                random_color = self.random_bright_color()
                 # Set the color of the square
-                square.set_fill(random_color, opacity=1.0)
+                square.set_fill(self.colors[i][j], opacity=1.0)
                 square.set_stroke(width=0)  # Remove the stroke
                 # Add the square to the grid
                 self.add(square)
@@ -286,12 +288,25 @@ class PixelGrid(VGroup):
         # Center the grid
         self.move_to(ORIGIN)
 
-    # Utility function to generate a random bright color
-    def random_bright_color(self):
-        return "#" + ''.join([random.choice('89ABCDEF') for _ in range(6)])
+    @staticmethod
+    def generate_random_colors(rows, cols):
+        return [[PixelGrid.random_bright_color() for _ in range(cols)] for _ in range(rows)]
+
+    @staticmethod
+    def random_bright_color():
+        return "#" + ''.join([random.choice('3456789ABCDEF') for _ in range(6)])
+
+    @staticmethod
+    def blend_with_noise(hex_color, blend_factor=0.6):
+        rgb = [int(hex_color[i:i + 2], 16) for i in (1, 3, 5)]
+        gray = int(sum(rgb) / 3)
+        blended_rgb = [int((1 - blend_factor) * c + blend_factor * gray) for c in rgb]
+        return '#' + ''.join(f'{c:02x}' for c in blended_rgb)
 
 
-class StageCTraining(Scene):
+class StageCTraining(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
     def construct(self):
         efficient_net_color = BLUE
         efficient_net_table_color = WHITE
@@ -309,7 +324,7 @@ class StageCTraining(Scene):
             include_outer_lines=True,
             line_config={"color": efficient_net_table_color},
             v_buff = 1.3
-        ).shift(LEFT * 4)
+        ).shift(LEFT * 5)
         efficient_net_table.get_columns().set_opacity(0)
         efficient_net_table.scale(0.25)
 
@@ -322,7 +337,7 @@ class StageCTraining(Scene):
         efficient_net = Polygon(
             [-3.5, -1.25, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.25, 0],
             color=efficient_net_color, fill_opacity=0
-        )
+        ).next_to(efficient_net_table, RIGHT)
         efficient_net_text = Text("EfficientNet").scale(0.4).move_to(efficient_net.get_center())
         self.play(FadeIn(efficient_net), Write(efficient_net_text))
 
@@ -346,20 +361,301 @@ class StageCTraining(Scene):
         iris_image.scale(0.05).move_to(database_image.get_center())
 
         self.play(iris_image.animate.scale(4))
-        self.play(iris_image.animate.move_to(efficient_net.get_center()).scale(0))
+        database_image_efficient_net_table_arrow = Arrow(database_image.get_right(), efficient_net_table.get_left(), buff=0.1)
+        self.play(iris_image.animate.move_to(efficient_net.get_center()).scale(0), GrowArrow(database_image_efficient_net_table_arrow))
+
+        rows, cols, cell_size = 4,4,1
+        pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size)
+
+        # Generate the same colors with more gray (noise)
+        colors_with_noise = [[PixelGrid.blend_with_noise(color) for color in row] for row in pixel_grid1.colors]
+
+        # Create the second PixelGrid with the gray colors
+        pixel_grid2 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise)
+
+        self.add(pixel_grid1)
+        pixel_grid1.scale(0.05)
+        pixel_grid1.move_to(efficient_net.get_center())
+        self.add(pixel_grid1)
+
+        pixel_grid1_dummy = pixel_grid1.copy().scale(4).next_to(efficient_net, RIGHT*3).set_opacity(0)
+
+        efficient_net_pixel_grid1_arrow = Arrow(efficient_net.get_right(), pixel_grid1_dummy.get_left(), buff=0.1)
+
+        self.play(pixel_grid1.animate.scale(4).next_to(efficient_net, RIGHT*3), GrowArrow(efficient_net_pixel_grid1_arrow))
+
+        pixel_grid2.scale(0.2)
+        pixel_grid2.next_to(pixel_grid1, RIGHT * 3)
+
+        self.wait(2)
+        pixel_grid1_pixel_grid2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
+        p1_p2_arrow_text = Text("Noise").scale(0.3)
+        self.add(p1_p2_arrow_text.next_to(pixel_grid1_pixel_grid2_arrow, UP*0.5))
+
+
+
+
+        self.play(GrowArrow(pixel_grid1_pixel_grid2_arrow), Write(p1_p2_arrow_text))
+
+        self.play(FadeIn(pixel_grid2))
 
         self.wait(2)
 
-        pixel_grid = PixelGrid()
-        self.add(pixel_grid)
-        pixel_grid.scale(0.05)
-        pixel_grid.move_to(efficient_net.get_center())
-        self.play(FadeIn(pixel_grid))
+        equation = MathTex(
+            r"X_{sc,t} = \sqrt{\bar{\alpha}_t} \cdot X_{sc} + \sqrt{1 - \bar{\alpha}_t} \cdot \epsilon"
+        )
+        equation.next_to(p1_p2_arrow_text, UP
+                         ).scale(0.5)
+        self.play(Write(equation))
 
-        self.play(pixel_grid.animate.scale(4).move_to(RIGHT*2))
+        self.wait(2)
+
+        self.play(equation.animate.to_edge(UR))
+
+        diffusion_model = Rectangle(width=2, height=1, color=WHITE, fill_opacity=0).next_to(pixel_grid2, RIGHT *3)
+        diffusion_model_text = Paragraph('Text-Conditional','Model', alignment='center').scale(0.35).move_to(diffusion_model.get_center())
+        self.play(FadeIn(diffusion_model), Write(diffusion_model_text))
+
+        self.wait(2)
+
+        diffusion_model_input_text = Text("Image Caption + timestep").scale(0.3).next_to(diffusion_model, DOWN*3)
+        diffusion_model_input_text_arrow = Arrow(diffusion_model_input_text.get_top(), diffusion_model.get_bottom(), buff=0.1)
+        self.play(FadeIn(diffusion_model_input_text), GrowArrow(diffusion_model_input_text_arrow))
+
+        self.wait(2)
+
+        pixel_grid2_copy = pixel_grid2.copy()
+        p2c_diffusion_model_arrow = Arrow(pixel_grid2.get_right(), diffusion_model.get_left(), buff=0.1)
+        self.play(pixel_grid2_copy.animate.move_to(diffusion_model.get_center()).scale(0), GrowArrow(p2c_diffusion_model_arrow))
+
+        pixel_grid1_copy_dummy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25).set_opacity(0)
+        pixel_grid1_copy_dummy.next_to(diffusion_model, RIGHT*4).scale(4)
+
+        pixel_grid1_copy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25)
+        diffusion_model_p1c_arrow = Arrow(diffusion_model.get_right(), pixel_grid1_copy_dummy.get_left(), buff=0.1)
+        self.play(pixel_grid1_copy.animate.next_to(diffusion_model, RIGHT*4).scale(4), GrowArrow(diffusion_model_p1c_arrow))
+
+        self.wait(2)
+
+        line = Line(start=pixel_grid1.get_top() + UP * 0.5, end=pixel_grid1_copy.get_top() + UP * 0.5, color=WHITE)
+        mse_text = Text("Mean Squared Error").scale(0.4).next_to(line, UP * 0.5)
+
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + DOWN * 0.5, color=WHITE)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + DOWN * 0.5, color=WHITE)
+
+        # Combine the lines
+        combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
+
+        self.play(FadeIn(combined_lines), Write(mse_text))
+
+        self.wait(2)
+
+        mse_loss_equation = MathTex(
+            r"L_{\text{MSE}} = \frac{1}{N} \sum_{i=1}^{N} (\epsilon_i - \hat{\epsilon}_i)^2"
+        )
+
+        mse_loss_equation.scale(0.5)
+        mse_loss_equation.next_to(mse_text, UP)
+        self.play(Write(mse_loss_equation))
+
+        self.wait(2)
+
+        self.play(mse_loss_equation.animate.next_to(equation, DOWN))
+
+        self.wait(2)
+
+        self.camera.frame.save_state()
+
+        # Animation of the camera
+        self.play(
+            self.camera.auto_zoom(diffusion_model),
+            FadeOut(diffusion_model_text, diffusion_model)
+        )
+
+        self.wait(2)
+
+        residual_color = BLUE
+        cross_attention_color = GREEN
+        timestep_color = ORANGE
+
+        # Block dimensions
+        block_width = 0.5
+        block_height = 2.5
+
+        # Create blocks for the neural network
+        example_blocks = VGroup()
+
+        for i in range(3):
+            color = residual_color if i % 3 == 0 else cross_attention_color if i % 3 == 1 else timestep_color
+            block = Rectangle(width=block_width, height=block_height, fill_color=color, fill_opacity=1, stroke_width=0)
+            example_blocks.add(block)
+
+        for i, block in enumerate(example_blocks):
+            block.next_to(example_blocks[i - 1], RIGHT, buff=2.25)
+
+        # Annotate specific blocks
+        residual_block = example_blocks[0]
+        attention_block = example_blocks[1]
+        timestep_block = example_blocks[2]
+
+        # Create arrows and labels
+        residual_label = Text("Residual Block", font_size=20).next_to(residual_block, DOWN*1)
+        attention_label = Paragraph("Attention +", "Cross-Attention Block", font_size=20, alignment='center').next_to(attention_block, DOWN * 1)
+        timestep_label = Text("Timestep Block", font_size=20).next_to(timestep_block, DOWN * 1)
+
+        example_setup = VGroup(example_blocks, residual_label, attention_label, timestep_label)
+        example_labels = VGroup(residual_label, attention_label, timestep_label)
+        example_setup.scale(0.2).move_to(diffusion_model.get_center())
+
+        self.play(FadeIn(example_blocks))
+        self.play(Write(residual_label))
+        self.play(Write(attention_label))
+        self.play(Write(timestep_label))
+
+        self.wait(2)
+
+        self.play(FadeOut(example_labels))
+
+        # Move blocks to the left and next to each other
+        target_position = residual_block.get_left() + LEFT*0.2
+        animations = []
+
+        for i, block in enumerate(example_blocks):
+            if i == 0:
+                animations.append(block.animate.move_to(target_position))
+            else:
+                animations.append(block.animate.next_to(target_position + (i - 1)*RIGHT*0.125, RIGHT, buff=0.075))
+
+        self.play(*animations)
+
+        self.wait(2)
+
+        block_group = VGroup(example_blocks)
+        num_copies = 3
+        previous_blocks = example_blocks
+        for _ in range(num_copies):
+            new_blocks = previous_blocks.copy()
+            self.play(new_blocks.animate.next_to(previous_blocks, RIGHT, buff=0.075))
+            previous_blocks = new_blocks
+            block_group.add(new_blocks)
+
+        self.wait(2)
+        self.play(Restore(self.camera.frame), block_group.animate.scale(1.3).move_to(diffusion_model.get_center()))
 
         self.wait(2)
 
 
-        diffusion_model = Rectangle
-        self.add()
+class StageBTraining(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
+
+    def construct(self):
+        encoder_input_color = WHITE
+        encoder_color = GREEN
+
+        num_rows = 8
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Add the watermark to the background
+        # self.add(addWatermark())
+
+        # Create the table
+        encoder_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        ).shift(LEFT * 2)
+        encoder_table.get_columns().set_opacity(0)
+        encoder_table.scale(0.25)
+
+        # Fade in the table
+        self.play(FadeIn(encoder_table))
+
+        self.wait(2)
+
+        # Encoder
+        encoder = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=encoder_color, fill_opacity=0
+        )
+        encoder.next_to(encoder_table, RIGHT)
+        encoder_text = Paragraph("VQGAN","Encoder", alignment='center').scale(0.5).move_to(encoder.get_center())
+        self.play(FadeIn(encoder), Write(encoder_text))
+
+        self.wait(2)
+
+        image = ImageMobject("resources/images/iris.jpg")
+        image.next_to(encoder_table, LEFT*2).scale(0.4)  # Adjust the scaling and position as needed
+
+        # Display the image
+        self.play(FadeIn(image))
+
+        # Move the image to the middle of the table and shrink it
+        self.play(image.animate.move_to(encoder.get_center()).scale(0))
+        self.remove(image)
+
+        rows, cols, cell_size = 24, 24, 1
+        pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.01)
+        pixel_grid1.move_to(encoder.get_center())
+
+
+
+        self.play(pixel_grid1.animate.next_to(encoder, RIGHT*4).scale(5))
+
+        colors_with_noise = [[PixelGrid.blend_with_noise(color) for color in row] for row in pixel_grid1.colors]
+
+        self.wait(2)
+
+        pixel_grid2 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.05).next_to(pixel_grid1, RIGHT*4)
+        p1_p2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
+        p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5)
+        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
+
+        self.wait(2)
+
+        block_width = 0.25
+        block_height = 2.5
+        block_color1 = BLUE_E
+        block_color2 = BLUE
+
+        # Function to create a block
+        def create_block(width, height, color):
+            return Rectangle(width=width, height=height, fill_color=color, fill_opacity=1, stroke_width=0)
+
+        # Create downsampling blocks
+        down_blocks = VGroup()
+        block1 = create_block(block_width, block_height, block_color1)
+        block2 = create_block(block_width, block_height, block_color2)
+
+        down_blocks.add(block1, block2)
+        down_blocks.arrange(RIGHT, buff=0.1)
+
+        # Create upsampling blocks
+        block3 = block2.copy()
+        block4 = block1.copy()
+        up_blocks = VGroup(block3, block4)
+
+        up_blocks.arrange(RIGHT, buff=0.1)
+
+        # Position downsampling and upsampling blocks
+        down_blocks.next_to(pixel_grid2, buff=1)
+        up_blocks.next_to(down_blocks, buff=1)
+
+        # Create bottleneck block
+        bottleneck_block = create_block(block_width, block_height, WHITE)
+        bottleneck_block.move_to(ORIGIN)
+
+        # Add all blocks to the scene
+        self.play(FadeIn(down_blocks), FadeIn(up_blocks), FadeIn(bottleneck_block))
+
+        # Create skip connections
+        skip_connections = VGroup()
+        for down_block, up_block in zip(down_blocks, reversed(up_blocks)):
+            skip_line = Line(start=down_block.get_right(), end=up_block.get_left(), color=WHITE)
+            skip_connections.add(skip_line)
+
+        # Add skip connections to the scene
+        self.play(FadeIn(skip_connections))
+
+        self.wait(2)
