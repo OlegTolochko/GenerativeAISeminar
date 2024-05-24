@@ -123,12 +123,20 @@ class VQGANStructure(Scene):
         # Create text objects for the values at the center of the table
         value_texts = [Text(value).scale(0.25).move_to(encoder_table.get_center()) for value in values]
 
+        vector_values = [[3.3], [7.5], [5.3], [1.3]]
+
+        # Create the vector using the Matrix class
+        z_vector = Matrix(vector_values, v_buff=0.5, bracket_h_buff=0.2)
+        z_vector.scale(0.5)
+        z_vector.move_to(z.get_center())
+
         # Animate the values moving to each cell simultaneously
         animations = []
         for i, value_text in enumerate(value_texts):
             cell = encoder_table.get_cell((i + 1, 1))
             animations.append(value_text.animate.move_to(cell.get_center()))
-        self.play(*animations)
+        encoder_z_arrow = Arrow(encoder.get_right(), z_vector.get_left(), buff=0.1)
+        self.play(*animations, GrowArrow(encoder_z_arrow))
 
         # Ensure the value_texts are properly added to the table cells
         for i, value_text in enumerate(value_texts):
@@ -148,19 +156,12 @@ class VQGANStructure(Scene):
         for value in moving_values:
             self.remove(value)
 
-        vector_values = [[3.3], [7.5], [5.3], [1.3]]
-
-        # Create the vector using the Matrix class
-        z_vector = Matrix(vector_values, v_buff=0.5, bracket_h_buff=0.2)
-        z_vector.scale(0.5)
-        z_vector.move_to(z.get_center())
-
         # Smoothly replace z with z_vector
         self.play(Transform(z, z_vector))
 
         self.wait(2)
 
-        zoom_group = VGroup(z_vector, encoder_table, z, encoder, z_text, encoder_text, vq, vq_text, z_quant_text, z_quant, codebook_text, codebook)
+        zoom_group = VGroup(z_vector, encoder_table, z, encoder, z_text, encoder_text, vq, vq_text, z_quant_text, z_quant, codebook_text, codebook, encoder_z_arrow)
         zoom_center = zoom_group.get_center()
 
         fade_out_group = VGroup(decoder,decoder_text,decoder_table)
@@ -259,3 +260,106 @@ class VQGANStructure(Scene):
             decoder_table.add(value_text)  # Add the text to the table
 
         self.wait(2)
+
+
+import random
+
+class PixelGrid(VGroup):
+    def __init__(self, rows=4, cols=4, cell_size=1, **kwargs):
+        super().__init__(**kwargs)
+
+        # Create a grid of squares with random colors
+        for i in range(rows):
+            for j in range(cols):
+                # Create a square
+                square = Square(side_length=cell_size)
+                # Set the position of the square
+                square.move_to(np.array([j * cell_size, -i * cell_size, 0]))
+                # Generate a random color
+                random_color = self.random_bright_color()
+                # Set the color of the square
+                square.set_fill(random_color, opacity=1.0)
+                square.set_stroke(width=0)  # Remove the stroke
+                # Add the square to the grid
+                self.add(square)
+
+        # Center the grid
+        self.move_to(ORIGIN)
+
+    # Utility function to generate a random bright color
+    def random_bright_color(self):
+        return "#" + ''.join([random.choice('89ABCDEF') for _ in range(6)])
+
+
+class StageCTraining(Scene):
+    def construct(self):
+        efficient_net_color = BLUE
+        efficient_net_table_color = WHITE
+
+
+        num_rows = 6
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Add the watermark to the background
+        #self.add(addWatermark())
+
+        # Create the table
+        efficient_net_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": efficient_net_table_color},
+            v_buff = 1.3
+        ).shift(LEFT * 4)
+        efficient_net_table.get_columns().set_opacity(0)
+        efficient_net_table.scale(0.25)
+
+        # Fade in the table
+        self.play(FadeIn(efficient_net_table))
+
+        self.wait(2)
+
+        # Encoder
+        efficient_net = Polygon(
+            [-3.5, -1.25, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.25, 0],
+            color=efficient_net_color, fill_opacity=0
+        )
+        efficient_net_text = Text("EfficientNet").scale(0.4).move_to(efficient_net.get_center())
+        self.play(FadeIn(efficient_net), Write(efficient_net_text))
+
+        efficient_net_group = VGroup(efficient_net_text, efficient_net, efficient_net_table)
+
+        self.wait(2)
+        self.play(efficient_net_group.animate.shift(RIGHT*2))
+
+        self.wait(2)
+
+        database_image = SVGMobject("resources/images/database-solid.svg")
+        database_image.scale(0.4).shift(LEFT * 5.5)  # Adjust the scaling and position as needed
+
+        # Display the image
+        self.play(FadeIn(database_image))
+
+        # Move the image to the middle of the table and shrink it
+        self.wait(2)
+
+        iris_image = ImageMobject("resources/images/iris.jpg")
+        iris_image.scale(0.05).move_to(database_image.get_center())
+
+        self.play(iris_image.animate.scale(4))
+        self.play(iris_image.animate.move_to(efficient_net.get_center()).scale(0))
+
+        self.wait(2)
+
+        pixel_grid = PixelGrid()
+        self.add(pixel_grid)
+        pixel_grid.scale(0.05)
+        pixel_grid.move_to(efficient_net.get_center())
+        self.play(FadeIn(pixel_grid))
+
+        self.play(pixel_grid.animate.scale(4).move_to(RIGHT*2))
+
+        self.wait(2)
+
+
+        diffusion_model = Rectangle
+        self.add()
