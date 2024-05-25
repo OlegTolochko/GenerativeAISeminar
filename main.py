@@ -614,10 +614,15 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
+        vqgan_noise_group = VGroup(pixel_grid1, pixel_grid2, p1_p2_arrow, p1_p2_arrow_text, encoder, encoder_text, encoder_table)
+        self.play(vqgan_noise_group.animate.shift(UP*2, LEFT*5).scale(0.8))
+
+        self.wait(2)
+
         block_width = 0.25
         block_height = 2.5
-        block_color1 = BLUE_E
-        block_color2 = BLUE
+        block_color1 = BLUE
+        block_color2 = TEAL
 
         # Function to create a block
         def create_block(width, height, color):
@@ -659,3 +664,57 @@ class StageBTraining(MovingCameraScene):
         self.play(FadeIn(skip_connections))
 
         self.wait(2)
+
+class UNet(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
+
+    def construct(self):
+
+        self.wait(2)
+
+        # Define colors
+        conv_color = BLUE
+        pool_color = TEAL
+        up_color = PURPLE
+
+        # Define positions
+        start = LEFT * 5
+        end = RIGHT * 5
+        step_down = DOWN * 1.5
+
+        # Create convolutional blocks
+        conv_blocks = [
+            Rectangle(height=1, width=0.2, color=conv_color).move_to(start),
+            Rectangle(height=0.8, width=0.2, color=conv_color).move_to(start + step_down),
+            Rectangle(height=0.6, width=0.2, color=conv_color).move_to(start + 2 * step_down),
+        ]
+
+        # Create downsampling (pooling) layers
+        pool_layers = [
+            Rectangle(height=1, width=0.2, color=pool_color).next_to(conv_blocks[0], RIGHT, buff=0.5),
+            Rectangle(height=0.8, width=0.2, color=pool_color).next_to(conv_blocks[1], RIGHT, buff=0.5),
+        ]
+
+        # Create upsampling layers
+        up_layers = [
+            Rectangle(height=0.6, width=0.2, color=up_color).next_to(conv_blocks[2], RIGHT, buff=0.5),
+            Rectangle(height=0.8, width=0.2, color=up_color).next_to(pool_layers[1], RIGHT, buff=0.5),
+        ]
+
+        # Create arrows
+        arrows = [
+            Arrow(start=conv_blocks[0].get_right(), end=pool_layers[0].get_left(), buff=0),
+            Arrow(start=pool_layers[0].get_right(), end=conv_blocks[1].get_left(), buff=0),
+            Arrow(start=conv_blocks[1].get_right(), end=pool_layers[1].get_left(), buff=0),
+            Arrow(start=pool_layers[1].get_right(), end=conv_blocks[2].get_left(), buff=0),
+            Arrow(start=conv_blocks[2].get_right(), end=up_layers[0].get_left(), buff=0),
+            Arrow(start=up_layers[0].get_right(), end=up_layers[1].get_left(), buff=0),
+        ]
+
+        # Add elements to scene
+        for block in conv_blocks + pool_layers + up_layers:
+            self.play(Create(block))
+
+        for arrow in arrows:
+            self.play(Create(arrow))
