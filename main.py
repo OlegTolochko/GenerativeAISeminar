@@ -595,19 +595,23 @@ class StageBTraining(MovingCameraScene):
         self.play(image.animate.move_to(encoder.get_center()).scale(0))
         self.remove(image)
 
-        rows, cols, cell_size = 24, 24, 1
-        pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.01)
+        rows, cols, cell_size = 16, 16, 1
+        pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.015)
         pixel_grid1.move_to(encoder.get_center())
 
 
 
         self.play(pixel_grid1.animate.next_to(encoder, RIGHT*4).scale(5))
 
-        colors_with_noise = [[PixelGrid.blend_with_noise(color) for color in row] for row in pixel_grid1.colors]
+        noise_count = 3
+        pixel_grids = [pixel_grid1.copy()]
+        for i in range(noise_count):
+            colors_with_noise = [[PixelGrid.blend_with_noise(color, blend_factor=0.35) for color in row] for row in pixel_grids[i].colors]
+            pixel_grids.append(PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.075))
 
         self.wait(2)
 
-        pixel_grid2 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.05).next_to(pixel_grid1, RIGHT*4)
+        pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT*4)
         p1_p2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
         p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5)
         self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
@@ -615,7 +619,7 @@ class StageBTraining(MovingCameraScene):
         self.wait(2)
 
         vqgan_noise_group = VGroup(pixel_grid1, pixel_grid2, p1_p2_arrow, p1_p2_arrow_text, encoder, encoder_text, encoder_table)
-        self.play(vqgan_noise_group.animate.shift(UP*2, LEFT*5).scale(0.8))
+        self.play(vqgan_noise_group.animate.shift(UP*1, LEFT*5).scale(0.8))
 
         self.wait(2)
 
@@ -629,39 +633,84 @@ class StageBTraining(MovingCameraScene):
             return Rectangle(width=width, height=height, fill_color=color, fill_opacity=1, stroke_width=0)
 
         # Create downsampling blocks
-        down_blocks = VGroup()
+        down_block1 = VGroup()
         block1 = create_block(block_width, block_height, block_color1)
         block2 = create_block(block_width, block_height, block_color2)
 
-        down_blocks.add(block1, block2)
-        down_blocks.arrange(RIGHT, buff=0.1)
+        down_block1.add(block1, block2)
+        down_block1.arrange(RIGHT, buff=0.1)
+        down_block1.next_to(pixel_grid2, RIGHT, buff=0.5)
 
-        # Create upsampling blocks
-        block3 = block2.copy()
-        block4 = block1.copy()
-        up_blocks = VGroup(block3, block4)
+        def create_next_block_group(sign, block_group):
+            new_block_group = VGroup()
 
-        up_blocks.arrange(RIGHT, buff=0.1)
+            for block in block_group:
+                current_width = block.width
+                current_height = block.height
 
-        # Position downsampling and upsampling blocks
-        down_blocks.next_to(pixel_grid2, buff=1)
-        up_blocks.next_to(down_blocks, buff=1)
+                # Adjust the dimensions based on the sign
+                if sign > 0:
+                    new_width = current_width + 0.05
+                    new_height = current_height - 0.5
+                else:
+                    new_width = current_width - 0.05
+                    new_height = current_height + 0.5
 
-        # Create bottleneck block
-        bottleneck_block = create_block(block_width, block_height, WHITE)
-        bottleneck_block.move_to(ORIGIN)
+                # Create a new block with the adjusted dimensions
+                new_block = create_block(new_width, new_height, block.get_fill_color())
+                new_block_group.add(new_block)
+
+            new_block_group.arrange(RIGHT, buff=0.1)
+            new_block_group.next_to(block_group, RIGHT, buff=0.25)
+
+            return new_block_group
+
+        down_block2 = create_next_block_group(1, down_block1)
+        down_block3 = create_next_block_group(1, down_block2)
+
+        down_blocks = VGroup(down_block1, down_block2, down_block3)
+
+        up_blocks = down_blocks.copy().scale([-1, 1, 1])
+
+        up_blocks.next_to(down_blocks, RIGHT, buff=1)
 
         # Add all blocks to the scene
-        self.play(FadeIn(down_blocks), FadeIn(up_blocks), FadeIn(bottleneck_block))
+        self.play(FadeIn(down_blocks), FadeIn(up_blocks))
 
-        # Create skip connections
-        skip_connections = VGroup()
-        for down_block, up_block in zip(down_blocks, reversed(up_blocks)):
-            skip_line = Line(start=down_block.get_right(), end=up_block.get_left(), color=WHITE)
-            skip_connections.add(skip_line)
+        main_line = Line(start=up_blocks[0].get_bottom() + DOWN*0.5, end=down_blocks[0].get_bottom() + DOWN*0.5)
 
-        # Add skip connections to the scene
-        self.play(FadeIn(skip_connections))
+        # Create connecting lines
+        connecting_lines = VGroup()
+        for block in down_blocks:
+            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom())
+            connecting_lines.add(line)
+
+        for block in up_blocks:
+            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom())
+            connecting_lines.add(line)
+
+        # Add everything to the scene
+        self.add(down_blocks, up_blocks, main_line, connecting_lines)
+
+        unet = VGroup(down_blocks, up_blocks)
+
+        self.wait(2)
+
+        path = ArcBetweenPoints(start=up_blocks[0].get_center() + RIGHT, end=pixel_grid2.get_center(), angle=PI)
+
+
+        for i in range(noise_count):
+            pixel_grids[noise_count-1-i].move_to(unet.get_center()).set_opacity(0).scale(0.1)
+
+            # Animate pixel_grid2 disappearing behind the first down block
+            self.play(pixel_grids[noise_count - i].animate.move_to(unet.get_center()).fade(1).scale(0))
+
+            # Animate pixel_grid_denoised appearing from the last up block
+            self.play(pixel_grids[noise_count-i-1].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(1).scale(10*0.8))
+
+            self.play(MoveAlongPath(pixel_grids[noise_count-i-1], path))
+
+
 
         self.wait(2)
 
