@@ -621,7 +621,7 @@ class StageBTraining(MovingCameraScene):
         self.wait(2)
 
         vqgan_noise_group = VGroup(pixel_grid1, pixel_grid2, p1_p2_arrow, p1_p2_arrow_text, encoder, encoder_text, encoder_table)
-        self.play(vqgan_noise_group.animate.shift(UP*1, LEFT*5).scale(0.8))
+        self.play(vqgan_noise_group.animate.shift(UP*1, LEFT*4).scale(0.8))
 
         self.wait(2)
 
@@ -729,7 +729,7 @@ class StageBTraining(MovingCameraScene):
             include_outer_lines=True,
             line_config={"color": efficient_net_table_color},
             v_buff=1.3
-        ).shift(LEFT*6).shift(DOWN*3)
+        ).move_to(encoder_table.get_center() + DOWN*4)
         efficient_net_table.get_columns().set_opacity(0)
         efficient_net_table.scale(scale_factor_efficient_net)
 
@@ -756,20 +756,56 @@ class StageBTraining(MovingCameraScene):
 
         efficient_net_u_net_line2 = Line(start=efficient_net_u_net_line1.get_right(), end=(efficient_net_u_net_line1.get_right()[0], main_line.get_y(), 0))
 
+
+        iris_image_pixelated =  ImageMobject("resources/images/iris_pixelated.png")
+
+        self.play(FadeIn(iris_image_copy))
+        self.play(iris_image_copy.animate.move_to(efficient_net.get_center()).scale(0))
+
+        iris_image_pixelated.move_to(efficient_net.get_center()).scale(0.05).set_opacity(0)
+        self.play(iris_image_pixelated.animate.next_to(efficient_net, RIGHT*1.5).scale(3).set_opacity(1))
+
+        self.wait(2)
+
+
+        self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2))
+
+        self.bring_to_front(iris_image_pixelated)
+
         path = VMobject()
         path.set_points_as_corners([
-            efficient_net.get_right(),
+            iris_image_pixelated.get_center(),
             efficient_net_u_net_line1.get_end(),
             efficient_net_u_net_line2.get_end()
         ])
 
-
-        self.play(FadeIn(iris_image_copy))
-        self.play(iris_image_copy.animate.move_to(efficient_net.get_center()).scale(0.3))
-
-        self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2), MoveAlongPath(iris_image_copy, path))
+        self.play(MoveAlongPath(iris_image_pixelated, path, run_time=4))
 
         self.wait(2)
+
+        u_net_line_animations = []
+        iris_images = []
+        for line in connecting_lines:
+            u_net_path = VMobject()
+            iris_image_pixelated_copy = iris_image_pixelated.copy().scale(0.5)
+            u_net_path.set_points_as_corners([
+                main_line.get_center(),
+                line.get_start(),
+                line.get_end()
+            ])
+            u_net_line_animations.append(MoveAlongPath(iris_image_pixelated_copy, u_net_path))
+            iris_images.append(iris_image_pixelated_copy)
+
+        self.play(u_net_line_animations)
+
+        iris_image_scale_animations = []
+        for iris_image in iris_images:
+            iris_image_scale_animations.append(iris_image.animate.scale(0))
+
+        self.play(iris_image_scale_animations)
+        self.wait(2)
+
+
 
 
 class UNet(MovingCameraScene):
