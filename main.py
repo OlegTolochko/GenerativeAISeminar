@@ -711,8 +711,51 @@ class StageBTraining(MovingCameraScene):
             self.play(MoveAlongPath(pixel_grids[noise_count-i-1], path))
 
 
+        self.wait(2)
+
+        efficient_net_color = BLUE
+        efficient_net_table_color = WHITE
+
+        num_rows = 6
+        table_data = [["a"] for _ in range(num_rows)]
+
+        scale_factor_efficient_net = 0.175
+
+        # Create the table
+        efficient_net_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": efficient_net_table_color},
+            v_buff=1.3
+        ).shift(LEFT*6).shift(DOWN*3)
+        efficient_net_table.get_columns().set_opacity(0)
+        efficient_net_table.scale(scale_factor_efficient_net)
+
+        # Fade in the table
+        self.play(FadeIn(efficient_net_table))
 
         self.wait(2)
+
+        # Encoder
+        efficient_net = Polygon(
+            [-3.5, -1.25, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.25, 0],
+            color=efficient_net_color, fill_opacity=0
+        ).scale(scale_factor_efficient_net/0.25).next_to(efficient_net_table, RIGHT*(scale_factor_efficient_net/0.25))
+        efficient_net_text = Text("EfficientNet").scale(0.4*(scale_factor_efficient_net/0.25)).move_to(efficient_net.get_center())
+        self.play(FadeIn(efficient_net), Write(efficient_net_text))
+
+        efficient_net_group = VGroup(efficient_net_text, efficient_net, efficient_net_table)
+
+        self.wait(2)
+
+        efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0))
+
+        efficient_net_u_net_line2 = Line(start=efficient_net.get_center()[0], end=(main_line.get_x(), efficient_net.get_y(), 0))
+
+        self.play(FadeIn(efficient_net_u_net_line1))
+
+        self.wait(2)
+
 
 class UNet(MovingCameraScene):
     def setup(self):
