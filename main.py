@@ -588,6 +588,8 @@ class StageBTraining(MovingCameraScene):
         image = ImageMobject("resources/images/iris.jpg")
         image.next_to(encoder_table, LEFT*2).scale(0.4)  # Adjust the scaling and position as needed
 
+        iris_image_copy = image.copy()
+
         # Display the image
         self.play(FadeIn(image))
 
@@ -595,7 +597,7 @@ class StageBTraining(MovingCameraScene):
         self.play(image.animate.move_to(encoder.get_center()).scale(0))
         self.remove(image)
 
-        rows, cols, cell_size = 16, 16, 1
+        rows, cols, cell_size = 8, 8, 1
         pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.015)
         pixel_grid1.move_to(encoder.get_center())
 
@@ -748,11 +750,24 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
+        iris_image_copy.next_to(efficient_net_table, LEFT*2)
+
         efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0))
 
-        efficient_net_u_net_line2 = Line(start=efficient_net.get_center()[0], end=(main_line.get_x(), efficient_net.get_y(), 0))
+        efficient_net_u_net_line2 = Line(start=efficient_net_u_net_line1.get_right(), end=(efficient_net_u_net_line1.get_right()[0], main_line.get_y(), 0))
 
-        self.play(FadeIn(efficient_net_u_net_line1))
+        path = VMobject()
+        path.set_points_as_corners([
+            efficient_net.get_right(),
+            efficient_net_u_net_line1.get_end(),
+            efficient_net_u_net_line2.get_end()
+        ])
+
+
+        self.play(FadeIn(iris_image_copy))
+        self.play(iris_image_copy.animate.move_to(efficient_net.get_center()).scale(0.3))
+
+        self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2), MoveAlongPath(iris_image_copy, path))
 
         self.wait(2)
 
