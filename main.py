@@ -729,7 +729,7 @@ class StageBTraining(MovingCameraScene):
             include_outer_lines=True,
             line_config={"color": efficient_net_table_color},
             v_buff=1.3
-        ).move_to(encoder_table.get_center() + DOWN*4)
+        ).move_to(encoder_table.get_center() + DOWN*3.5)
         efficient_net_table.get_columns().set_opacity(0)
         efficient_net_table.scale(scale_factor_efficient_net)
 
@@ -816,48 +816,49 @@ class UNet(MovingCameraScene):
 
         self.wait(2)
 
-        # Define colors
-        conv_color = BLUE
-        pool_color = TEAL
-        up_color = PURPLE
+        block_width = 0.25
+        block_height = 2.5
+        block_color1 = BLUE
+        block_color2 = TEAL
 
-        # Define positions
-        start = LEFT * 5
-        end = RIGHT * 5
-        step_down = DOWN * 1.5
+        # Function to create a block
+        def create_block(width, height, color):
+            return Rectangle(width=width, height=height, fill_color=color, fill_opacity=1, stroke_width=0)
 
-        # Create convolutional blocks
-        conv_blocks = [
-            Rectangle(height=1, width=0.2, color=conv_color).move_to(start),
-            Rectangle(height=0.8, width=0.2, color=conv_color).move_to(start + step_down),
-            Rectangle(height=0.6, width=0.2, color=conv_color).move_to(start + 2 * step_down),
-        ]
+        # Create downsampling blocks
+        down_block1 = VGroup()
+        block1 = create_block(block_width, block_height, block_color1)
+        block2 = create_block(block_width, block_height, block_color2)
+        block3 =
 
-        # Create downsampling (pooling) layers
-        pool_layers = [
-            Rectangle(height=1, width=0.2, color=pool_color).next_to(conv_blocks[0], RIGHT, buff=0.5),
-            Rectangle(height=0.8, width=0.2, color=pool_color).next_to(conv_blocks[1], RIGHT, buff=0.5),
-        ]
+        down_block1.add(block1, block2)
+        down_block1.arrange(RIGHT, buff=0.1)
 
-        # Create upsampling layers
-        up_layers = [
-            Rectangle(height=0.6, width=0.2, color=up_color).next_to(conv_blocks[2], RIGHT, buff=0.5),
-            Rectangle(height=0.8, width=0.2, color=up_color).next_to(pool_layers[1], RIGHT, buff=0.5),
-        ]
+        def create_next_block_group(sign, block_group):
+            new_block_group = VGroup()
 
-        # Create arrows
-        arrows = [
-            Arrow(start=conv_blocks[0].get_right(), end=pool_layers[0].get_left(), buff=0),
-            Arrow(start=pool_layers[0].get_right(), end=conv_blocks[1].get_left(), buff=0),
-            Arrow(start=conv_blocks[1].get_right(), end=pool_layers[1].get_left(), buff=0),
-            Arrow(start=pool_layers[1].get_right(), end=conv_blocks[2].get_left(), buff=0),
-            Arrow(start=conv_blocks[2].get_right(), end=up_layers[0].get_left(), buff=0),
-            Arrow(start=up_layers[0].get_right(), end=up_layers[1].get_left(), buff=0),
-        ]
+            for block in block_group:
+                current_width = block.width
+                current_height = block.height
 
-        # Add elements to scene
-        for block in conv_blocks + pool_layers + up_layers:
-            self.play(Create(block))
+                # Adjust the dimensions based on the sign
+                if sign > 0:
+                    new_width = current_width + 0.05
+                    new_height = current_height - 0.5
+                else:
+                    new_width = current_width - 0.05
+                    new_height = current_height + 0.5
 
-        for arrow in arrows:
-            self.play(Create(arrow))
+                # Create a new block with the adjusted dimensions
+                new_block = create_block(new_width, new_height, block.get_fill_color())
+                new_block_group.add(new_block)
+
+            new_block_group.arrange(RIGHT, buff=0.1)
+            new_block_group.next_to(block_group, RIGHT, buff=0.25)
+
+            return new_block_group
+
+        down_block2 = create_next_block_group(1, down_block1)
+        down_block3 = create_next_block_group(1, down_block2)
+
+        down_blocks = VGroup(down_block1, down_block2, down_block3)
