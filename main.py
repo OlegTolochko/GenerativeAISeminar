@@ -829,7 +829,6 @@ class UNet(MovingCameraScene):
         down_block1 = VGroup()
         block1 = create_block(block_width, block_height, block_color1)
         block2 = create_block(block_width, block_height, block_color2)
-        block3 =
 
         down_block1.add(block1, block2)
         down_block1.arrange(RIGHT, buff=0.1)
@@ -862,3 +861,97 @@ class UNet(MovingCameraScene):
         down_block3 = create_next_block_group(1, down_block2)
 
         down_blocks = VGroup(down_block1, down_block2, down_block3)
+
+class VQGANLimit(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
+
+    def construct(self):
+        encoder_input_color = WHITE
+        decoder_output_color = WHITE
+        encoder_color = GREEN
+        decoder_color = YELLOW
+
+        num_rows = 8
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Add the watermark to the background
+        # self.add(addWatermark())
+
+        # Create the table
+        encoder_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        ).shift(LEFT * 3.5)
+        encoder_table.get_columns().set_opacity(0)
+        encoder_table.scale(0.25)
+
+        # Fade in the table
+
+
+        self.wait(2)
+
+        # Encoder
+        encoder = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=encoder_color, fill_opacity=0
+        ).shift(RIGHT*0.5)
+        encoder_text = Text("Encoder").scale(0.5).move_to(encoder.get_center())
+
+
+
+
+        # Decoder
+        decoder = Polygon(
+            [3, -0.5, 0], [4.5, -1.5, 0], [4.5, 1.5, 0], [3, 0.5, 0],
+            color=decoder_color, fill_opacity=0
+        ).shift(LEFT*1.5)
+        decoder_text = Text("Decoder").scale(0.5).move_to(decoder.get_center())
+
+
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Create the table
+        decoder_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": decoder_output_color},
+            v_buff=1.3
+        ).shift(RIGHT * 3.5)
+        decoder_table.get_columns().set_opacity(0)
+        decoder_table.scale(0.25)
+
+        self.play(FadeIn(encoder_table),FadeIn(encoder), Write(encoder_text),FadeIn(decoder), Write(decoder_text), FadeIn(decoder_table))
+
+        self.wait(2)
+
+        # Load the image
+        iris_image = ImageMobject("resources/images/iris.jpg")
+        iris_image.scale(0.4).shift(LEFT * 5)
+
+        iris_image_copy = iris_image.copy().shift(RIGHT * 10)
+
+        self.play(FadeIn(iris_image))
+
+        self.wait(2)
+
+        blurred_iris_image = ImageMobject("resources/images/iris_blurred2.png").shift(RIGHT*5).scale(0.4)
+        blurred_iris_image2 = ImageMobject("resources/images/iris_blurred3.png").shift(RIGHT*5).scale(0.4)
+
+        pixelated48 = ImageMobject("resources/images/pixelated/48x48pixelated.png")
+        pixelated32 = ImageMobject("resources/images/pixelated/32x32pixelated.png")
+        pixelated16 = ImageMobject("resources/images/pixelated/16x16pixelated.png")
+
+        pixelated48.scale(0.5)
+        pixelated32.scale(0.5)
+        pixelated16.scale(0.5)
+
+        self.play(FadeIn(pixelated48), FadeIn(iris_image_copy))
+        self.wait(2)
+        self.play(FadeTransform(pixelated48, pixelated32), FadeTransform(iris_image_copy, blurred_iris_image))
+        self.wait(2)
+        self.play(FadeTransform(pixelated32, pixelated16), FadeTransform(blurred_iris_image, blurred_iris_image2))
+
+        self.wait(2)
