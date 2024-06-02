@@ -168,7 +168,7 @@ class VQGANStructure(Scene):
 
         # Zoom into the left part (scale and move)
         self.play(
-            zoom_group.animate.scale(1.5),
+            zoom_group.animate.scale(1.5).shift(DOWN*1),
             FadeOut(fade_out_group)
         )
 
@@ -229,7 +229,7 @@ class VQGANStructure(Scene):
         self.remove(z_quant)
         zoom_group.remove(z_quant)
         self.wait(2)
-        self.play(zoom_group.animate.scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
+        self.play(zoom_group.animate.shift(UP*1).scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
 
         self.wait(2)
         matrix1_decoder_arrow = Arrow(matrix1_copy.get_right(), decoder.get_left(), buff=0.1)
@@ -260,6 +260,101 @@ class VQGANStructure(Scene):
             decoder_table.add(value_text)  # Add the text to the table
 
         self.wait(2)
+
+        everything = VGroup(zoom_group, matrix1_decoder_arrow, decoder, decoder_text, decoder_table, z_vq_arrow,
+                            vq_z_quant_arrow, vectors)
+        self.play(everything.animate.move_to(ORIGIN))
+
+        self.wait(2)
+
+        # Load images
+        image_iris1 = ImageMobject("resources/images/iris.jpg").scale(0.3).next_to(encoder_table, LEFT * 1)
+        image_iris2 = ImageMobject("resources/images/iris.jpg").scale(0.3).next_to(decoder_table, RIGHT * 1)
+
+        self.play(FadeIn(image_iris1), FadeIn(image_iris2))
+
+        self.wait(2)
+
+        # Create lines and text
+        line = Line(start=image_iris1.get_bottom() + DOWN * 1.5, end=image_iris2.get_bottom() + DOWN * 1.5, color=WHITE)
+        loss_text = Text("Reconstruction Loss").scale(0.4).next_to(line, DOWN * 0.5)
+
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + UP * 1.5, color=WHITE)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + UP * 1.5, color=WHITE)
+
+        combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
+
+        self.play(FadeIn(combined_lines), Write(loss_text))
+
+        self.wait(2)
+
+        # Create a new VGroup that includes everything
+        everything_with_images = Group(everything, image_iris1, image_iris2, combined_lines, loss_text)
+
+        self.play(everything_with_images.animate.scale(0.8).shift(DOWN * 1 + LEFT * 1.5))
+
+        self.wait(2)
+
+        self.play(FadeOut(combined_lines, loss_text))
+
+        discriminator_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        )
+        discriminator_table.get_columns().set_opacity(0)
+        discriminator_table.scale(0.25)
+
+        self.wait(2)
+
+        # Discriminator
+        discriminator = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=PURPLE_E, fill_opacity=0
+        ).next_to(discriminator_table, RIGHT*1)
+        discriminator_text = Text("Discriminator").scale(0.3).move_to(discriminator.get_center())
+
+        discriminator_group = VGroup(discriminator, discriminator_text, discriminator_table).scale(0.8).shift(UP * 2 + RIGHT * 2)
+
+        self.play(FadeIn(discriminator, discriminator_table), Write(discriminator_text))
+
+        self.wait(2)
+
+        # animate iris images to the discriminator
+
+        self.play(image_iris2.animate.move_to(discriminator_table.get_center()).scale(0))
+
+        fake_text = Text("Fake").scale(0.5).next_to(discriminator, RIGHT*1)
+        self.play(Write(fake_text))
+
+        self.remove(fake_text)
+        self.play(image_iris1.animate.move_to(discriminator_table.get_center()).scale(0))
+
+        self.wait(2)
+
+        real_text = Text("Real").scale(0.5).next_to(discriminator, RIGHT*1)
+        self.play(Write(real_text))
+
+        self.wait(2)
+
+
+        # Define the target position
+        target_position1 = decoder.get_center()
+        target_position2 = encoder.get_center()
+
+        # Initial position for the numbers
+        for i in range(10):
+            random_number = round(random.uniform(0, 1), 1) * 10
+            number = Text(str(i))
+            number.move_to(discriminator.get_center()).scale(0.3)
+            if i % 2 == 0:
+                self.play(number.animate.move_to(target_position1), run_time= 0.75)
+            else:
+                self.play(number.animate.move_to(target_position2), run_time=0.75)
+
+        self.wait(2)
+
 
 
 import random
@@ -712,7 +807,6 @@ class StageBTraining(MovingCameraScene):
 
             self.play(MoveAlongPath(pixel_grids[noise_count-i-1], path))
 
-
         self.wait(2)
 
         efficient_net_color = BLUE
@@ -767,7 +861,6 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-
         self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2))
 
         self.bring_to_front(iris_image_pixelated)
@@ -804,8 +897,6 @@ class StageBTraining(MovingCameraScene):
 
         self.play(iris_image_scale_animations)
         self.wait(2)
-
-
 
 
 class UNet(MovingCameraScene):
@@ -889,8 +980,6 @@ class VQGANLimit(MovingCameraScene):
         encoder_table.scale(0.25)
 
         # Fade in the table
-
-
         self.wait(2)
 
         # Encoder
@@ -899,9 +988,6 @@ class VQGANLimit(MovingCameraScene):
             color=encoder_color, fill_opacity=0
         ).shift(RIGHT*0.5)
         encoder_text = Text("Encoder").scale(0.5).move_to(encoder.get_center())
-
-
-
 
         # Decoder
         decoder = Polygon(
@@ -955,3 +1041,63 @@ class VQGANLimit(MovingCameraScene):
         self.play(FadeTransform(pixelated32, pixelated16), FadeTransform(blurred_iris_image, blurred_iris_image2))
 
         self.wait(2)
+
+class UNetVisualization(Scene):
+    def construct(self):
+        # Define stages
+        encoder_stages = [4, 4, 14, 4]
+        decoder_stages = [4, 4, 14, 4]
+        cross_attention_heads = [0, 10, 20, 20]
+        colors = [BLUE, GREEN, YELLOW, RED]
+
+        # Encoder part
+        encoder_text = Text("Encoder").to_edge(LEFT)
+        self.play(Write(encoder_text))
+
+        encoder_blocks = VGroup()
+        for i, blocks in enumerate(encoder_stages):
+            stage = VGroup(*[
+                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
+                for _ in range(blocks)
+            ]).arrange(DOWN, buff=0.1)
+            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
+            encoder_blocks.add(VGroup(stage_text, stage))
+
+        encoder_blocks.arrange(RIGHT, buff=1).next_to(encoder_text, RIGHT, buff=1)
+        self.play(Write(encoder_blocks))
+
+        # Draw connections and add cross-attention heads
+        for i in range(len(encoder_blocks) - 1):
+            line = Line(encoder_blocks[i].get_right(), encoder_blocks[i + 1].get_left())
+            self.play(Create(line))
+            if cross_attention_heads[i + 1] > 0:
+                cross_attention_text = Text(f"{cross_attention_heads[i + 1]} heads").scale(0.5).next_to(line, UP)
+                self.play(Write(cross_attention_text))
+
+        # Decoder part
+        decoder_text = Text("Decoder").to_edge(RIGHT)
+        self.play(Write(decoder_text))
+
+        decoder_blocks = VGroup()
+        for i, blocks in enumerate(decoder_stages):
+            stage = VGroup(*[
+                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
+                for _ in range(blocks)
+            ]).arrange(DOWN, buff=0.1)
+            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
+            decoder_blocks.add(VGroup(stage_text, stage))
+
+        decoder_blocks.arrange(RIGHT, buff=1).next_to(decoder_text, LEFT, buff=1)
+        self.play(Write(decoder_blocks))
+
+        # Draw connections
+        for i in range(len(decoder_blocks) - 1):
+            line = Line(decoder_blocks[i].get_left(), decoder_blocks[i + 1].get_right())
+            self.play(Create(line))
+
+        # Add arrows between encoder and decoder
+        arrow_to_decoder = Arrow(encoder_blocks[-1].get_right(), decoder_blocks[0].get_left())
+        self.play(Create(arrow_to_decoder))
+
+        self.wait(2)
+
