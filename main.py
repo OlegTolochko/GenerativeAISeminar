@@ -751,10 +751,10 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-        pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT*4)
-        p1_p2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
-        p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5)
-        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
+        pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT*4).set_opacity(0)
+        p1_p2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1).set_opacity(0)
+        p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5).set_opacity(0)
+
 
         self.wait(2)
 
@@ -834,21 +834,6 @@ class StageBTraining(MovingCameraScene):
 
         unet = VGroup(down_blocks, up_blocks)
 
-        self.wait(2)
-
-        path = ArcBetweenPoints(start=up_blocks[0].get_center() + RIGHT, end=pixel_grid2.get_center(), angle=PI)
-
-
-        for i in range(noise_count):
-            pixel_grids[noise_count-1-i].move_to(unet.get_center()).set_opacity(0).scale(0.1)
-
-            # Animate pixel_grid2 disappearing behind the first down block
-            self.play(pixel_grids[noise_count - i].animate.move_to(unet.get_center()).fade(1).scale(0))
-
-            # Animate pixel_grid_denoised appearing from the last up block
-            self.play(pixel_grids[noise_count-i-1].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(1).scale(10*0.8))
-
-            self.play(MoveAlongPath(pixel_grids[noise_count-i-1], path))
 
         self.wait(2)
 
@@ -932,7 +917,7 @@ class StageBTraining(MovingCameraScene):
             u_net_line_animations.append(MoveAlongPath(iris_image_pixelated_copy, u_net_path))
             iris_images.append(iris_image_pixelated_copy)
 
-        self.play(u_net_line_animations)
+        self.play(u_net_line_animations, FadeOut(iris_image_pixelated))
 
         iris_image_scale_animations = []
         for iris_image in iris_images:
@@ -941,6 +926,28 @@ class StageBTraining(MovingCameraScene):
         self.play(iris_image_scale_animations)
         self.wait(2)
 
+        p1_p2_arrow.set_opacity(1)
+        p1_p2_arrow_text.set_opacity(1)
+        pixel_grid2.set_opacity(1)
+        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
+
+        self.wait(2)
+
+        path = ArcBetweenPoints(start=up_blocks[0].get_center() + RIGHT, end=pixel_grid2.get_center(), angle=PI)
+
+        for i in range(noise_count):
+            pixel_grids[noise_count - 1 - i].move_to(unet.get_center()).set_opacity(0).scale(0.1)
+
+            # Animate pixel_grid2 disappearing behind the first down block
+            self.play(pixel_grids[noise_count - i].animate.move_to(unet.get_center()).fade(1).scale(0))
+
+            # Animate pixel_grid_denoised appearing from the last up block
+            self.play(pixel_grids[noise_count - i - 1].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(
+                1).scale(10 * 0.8))
+
+            self.play(MoveAlongPath(pixel_grids[noise_count - i - 1], path))
+
+        self.wait(2)
 
 class UNet(MovingCameraScene):
     def setup(self):
