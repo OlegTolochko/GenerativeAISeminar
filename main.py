@@ -168,7 +168,7 @@ class VQGANStructure(Scene):
 
         # Zoom into the left part (scale and move)
         self.play(
-            zoom_group.animate.scale(1.5),
+            zoom_group.animate.scale(1.5).shift(DOWN*1),
             FadeOut(fade_out_group)
         )
 
@@ -181,10 +181,10 @@ class VQGANStructure(Scene):
         self.wait(2)
 
         # Define the 4 vectors with arbitrary values
-        vector1 = [[1.1], [2.2], [3.3], [4.4]]
-        vector2 = [[2.2], [3.3], [4.4], [5.5]]
-        vector3 = [[3.3], [4.4], [5.5], [6.6]]
-        vector4 = [[4.4], [5.5], [6.6], [7.7]]
+        vector1 = [[3.5], [7.4], [5.3], [0.8]]
+        vector2 = [[2.2], [5.4], [4.6], [5.2]]
+        vector3 = [[7.1], [1.4], [2.0], [0.2]]
+        vector4 = [[3.4], [2.8], [6.7], [2.3]]
 
         # Create the vectors using the Matrix class
         matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
@@ -229,7 +229,7 @@ class VQGANStructure(Scene):
         self.remove(z_quant)
         zoom_group.remove(z_quant)
         self.wait(2)
-        self.play(zoom_group.animate.scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
+        self.play(zoom_group.animate.shift(UP*1).scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
 
         self.wait(2)
         matrix1_decoder_arrow = Arrow(matrix1_copy.get_right(), decoder.get_left(), buff=0.1)
@@ -260,6 +260,144 @@ class VQGANStructure(Scene):
             decoder_table.add(value_text)  # Add the text to the table
 
         self.wait(2)
+
+        everything = VGroup(zoom_group, matrix1_decoder_arrow, decoder, decoder_text, decoder_table, z_vq_arrow,
+                            vq_z_quant_arrow, vectors)
+        self.play(everything.animate.move_to(ORIGIN))
+
+        self.wait(2)
+
+        # Load images
+        image_iris1 = ImageMobject("resources/images/iris.jpg").scale(0.3).next_to(encoder_table, LEFT * 1)
+        image_iris2 = ImageMobject("resources/images/iris.jpg").scale(0.3).next_to(decoder_table, RIGHT * 1)
+
+        self.play(FadeIn(image_iris1), FadeIn(image_iris2))
+
+        self.wait(2)
+
+        # Create lines and text
+        line = Line(start=image_iris1.get_bottom() + DOWN * 1.5, end=image_iris2.get_bottom() + DOWN * 1.5, color=WHITE)
+        loss_text = Text("Reconstruction Loss").scale(0.4).next_to(line, DOWN * 0.5)
+
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + UP * 1.5, color=WHITE)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + UP * 1.5, color=WHITE)
+
+        combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
+
+        self.play(FadeIn(combined_lines), Write(loss_text))
+
+        self.wait(2)
+
+        # Create a new VGroup that includes everything
+        everything_with_images = Group(everything, image_iris1, image_iris2, combined_lines, loss_text)
+
+        self.play(everything_with_images.animate.scale(0.9).shift(DOWN * 1 + LEFT * 1))
+
+        self.wait(2)
+
+        self.play(FadeOut(combined_lines, loss_text))
+
+        discriminator_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        )
+        discriminator_table.get_columns().set_opacity(0)
+        discriminator_table.scale(0.25)
+
+        self.wait(2)
+
+        # Discriminator
+        discriminator = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=PURPLE_E, fill_opacity=0
+        ).next_to(discriminator_table, RIGHT*1)
+
+
+        discriminator_group = VGroup(discriminator, discriminator_table).scale(0.9).shift(UP * 1.5 + RIGHT * 4.2)
+
+        #turn disccriminator group by 90 degrees
+
+        discriminator_group.rotate(PI/2)
+
+        discriminator_text = Text("Discriminator").scale(0.4).move_to(discriminator.get_center() + DOWN*0.25)
+
+
+        self.play(FadeIn(discriminator, discriminator_table), Write(discriminator_text))
+
+        self.wait(2)
+
+        image_iris2_copy = image_iris2.copy()
+        image_iris1_copy = image_iris1.copy()
+
+        # animate iris images to the discriminator
+
+        self.play(image_iris2.animate.move_to(discriminator_table.get_center()).scale(0))
+
+        fake_text = Text("Fake").scale(0.5).next_to(discriminator, UP*1)
+        self.play(Write(fake_text))
+
+        self.play(FadeOut(fake_text))
+
+        self.wait(1)
+
+        self.play(image_iris1.animate.move_to(discriminator_table.get_center()).scale(0))
+
+        real_text = Text("Real").scale(0.5).next_to(discriminator, UP*1)
+        self.play(Write(real_text))
+
+        self.wait(2)
+
+        self.play(FadeOut(real_text))
+
+
+        # Define the target position
+        target_position1 = decoder.get_center()
+        target_position2 = encoder.get_center()
+
+        random_numbers = [3.7, 2.2, 1.5, 0.5, 2.8, 4.6, 1.2, 2.2, 3.9, 2.5]
+        # Initial position for the numbers
+        for i in range(10):
+            number = Text(str(random_numbers[i]))
+            number.move_to(discriminator.get_center()).scale(0.3)
+            if i % 2 == 0:
+                self.play(number.animate.move_to(target_position1).set_opacity(0),run_time= 0.5)
+            else:
+                self.play(number.animate.move_to(target_position2).set_opacity(0), run_time=0.5)
+            self.remove(number)
+
+        self.wait(2)
+
+        self.play(FadeIn(image_iris2_copy, image_iris1_copy))
+
+        pixel_representation = MathTex(
+            r"1024 \times 1024 \times 3"
+        ).scale(0.4)
+        pixel_representation_copy = pixel_representation.copy()
+        latent_representation = MathTex(
+            r"256 \times 256 \times 4"
+        ).scale(0.4)
+        latent_representation_copy = latent_representation.copy()
+        codebook_size = Text("8,192 Vectors").scale(0.35)
+
+        pixel_representation.next_to(encoder_table, DOWN)
+        pixel_representation_copy.next_to(decoder_table, DOWN)
+
+        latent_representation.next_to(z_text, DOWN)
+        latent_representation_copy.next_to(z_quant_text, DOWN)
+
+        codebook_size.next_to(codebook, DOWN*0.5)
+
+        self.play(Write(pixel_representation), Write(pixel_representation_copy))
+        self.wait(2)
+
+        self.play(Write(latent_representation), Write(latent_representation_copy))
+        self.wait(2)
+
+        self.play(Write(codebook_size))
+        self.wait(2)
+
 
 
 import random
@@ -712,7 +850,6 @@ class StageBTraining(MovingCameraScene):
 
             self.play(MoveAlongPath(pixel_grids[noise_count-i-1], path))
 
-
         self.wait(2)
 
         efficient_net_color = BLUE
@@ -767,7 +904,6 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-
         self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2))
 
         self.bring_to_front(iris_image_pixelated)
@@ -806,8 +942,6 @@ class StageBTraining(MovingCameraScene):
         self.wait(2)
 
 
-
-
 class UNet(MovingCameraScene):
     def setup(self):
         MovingCameraScene.setup(self)
@@ -829,7 +963,6 @@ class UNet(MovingCameraScene):
         down_block1 = VGroup()
         block1 = create_block(block_width, block_height, block_color1)
         block2 = create_block(block_width, block_height, block_color2)
-        block3 =
 
         down_block1.add(block1, block2)
         down_block1.arrange(RIGHT, buff=0.1)
@@ -862,3 +995,152 @@ class UNet(MovingCameraScene):
         down_block3 = create_next_block_group(1, down_block2)
 
         down_blocks = VGroup(down_block1, down_block2, down_block3)
+
+class VQGANLimit(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
+
+    def construct(self):
+        encoder_input_color = WHITE
+        decoder_output_color = WHITE
+        encoder_color = GREEN
+        decoder_color = YELLOW
+
+        num_rows = 8
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Add the watermark to the background
+        # self.add(addWatermark())
+
+        # Create the table
+        encoder_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        ).shift(LEFT * 3.5)
+        encoder_table.get_columns().set_opacity(0)
+        encoder_table.scale(0.25)
+
+        # Fade in the table
+        self.wait(2)
+
+        # Encoder
+        encoder = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=encoder_color, fill_opacity=0
+        ).shift(RIGHT*0.5)
+        encoder_text = Text("Encoder").scale(0.5).move_to(encoder.get_center())
+
+        # Decoder
+        decoder = Polygon(
+            [3, -0.5, 0], [4.5, -1.5, 0], [4.5, 1.5, 0], [3, 0.5, 0],
+            color=decoder_color, fill_opacity=0
+        ).shift(LEFT*1.5)
+        decoder_text = Text("Decoder").scale(0.5).move_to(decoder.get_center())
+
+
+        table_data = [["a"] for _ in range(num_rows)]
+
+        # Create the table
+        decoder_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": decoder_output_color},
+            v_buff=1.3
+        ).shift(RIGHT * 3.5)
+        decoder_table.get_columns().set_opacity(0)
+        decoder_table.scale(0.25)
+
+        self.play(FadeIn(encoder_table),FadeIn(encoder), Write(encoder_text),FadeIn(decoder), Write(decoder_text), FadeIn(decoder_table))
+
+        self.wait(2)
+
+        # Load the image
+        iris_image = ImageMobject("resources/images/iris.jpg")
+        iris_image.scale(0.4).shift(LEFT * 5)
+
+        iris_image_copy = iris_image.copy().shift(RIGHT * 10)
+
+        self.play(FadeIn(iris_image))
+
+        self.wait(2)
+
+        blurred_iris_image = ImageMobject("resources/images/iris_blurred2.png").shift(RIGHT*5).scale(0.4)
+        blurred_iris_image2 = ImageMobject("resources/images/iris_blurred3.png").shift(RIGHT*5).scale(0.4)
+
+        pixelated48 = ImageMobject("resources/images/pixelated/48x48pixelated.png")
+        pixelated32 = ImageMobject("resources/images/pixelated/32x32pixelated.png")
+        pixelated16 = ImageMobject("resources/images/pixelated/16x16pixelated.png")
+
+        pixelated48.scale(0.5)
+        pixelated32.scale(0.5)
+        pixelated16.scale(0.5)
+
+        self.play(FadeIn(pixelated48), FadeIn(iris_image_copy))
+        self.wait(2)
+        self.play(FadeTransform(pixelated48, pixelated32), FadeTransform(iris_image_copy, blurred_iris_image))
+        self.wait(2)
+        self.play(FadeTransform(pixelated32, pixelated16), FadeTransform(blurred_iris_image, blurred_iris_image2))
+
+        self.wait(2)
+
+class UNetVisualization(Scene):
+    def construct(self):
+        # Define stages
+        encoder_stages = [4, 4, 14, 4]
+        decoder_stages = [4, 4, 14, 4]
+        cross_attention_heads = [0, 10, 20, 20]
+        colors = [BLUE, GREEN, YELLOW, RED]
+
+        # Encoder part
+        encoder_text = Text("Encoder").to_edge(LEFT)
+        self.play(Write(encoder_text))
+
+        encoder_blocks = VGroup()
+        for i, blocks in enumerate(encoder_stages):
+            stage = VGroup(*[
+                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
+                for _ in range(blocks)
+            ]).arrange(DOWN, buff=0.1)
+            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
+            encoder_blocks.add(VGroup(stage_text, stage))
+
+        encoder_blocks.arrange(RIGHT, buff=1).next_to(encoder_text, RIGHT, buff=1)
+        self.play(Write(encoder_blocks))
+
+        # Draw connections and add cross-attention heads
+        for i in range(len(encoder_blocks) - 1):
+            line = Line(encoder_blocks[i].get_right(), encoder_blocks[i + 1].get_left())
+            self.play(Create(line))
+            if cross_attention_heads[i + 1] > 0:
+                cross_attention_text = Text(f"{cross_attention_heads[i + 1]} heads").scale(0.5).next_to(line, UP)
+                self.play(Write(cross_attention_text))
+
+        # Decoder part
+        decoder_text = Text("Decoder").to_edge(RIGHT)
+        self.play(Write(decoder_text))
+
+        decoder_blocks = VGroup()
+        for i, blocks in enumerate(decoder_stages):
+            stage = VGroup(*[
+                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
+                for _ in range(blocks)
+            ]).arrange(DOWN, buff=0.1)
+            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
+            decoder_blocks.add(VGroup(stage_text, stage))
+
+        decoder_blocks.arrange(RIGHT, buff=1).next_to(decoder_text, LEFT, buff=1)
+        self.play(Write(decoder_blocks))
+
+        # Draw connections
+        for i in range(len(decoder_blocks) - 1):
+            line = Line(decoder_blocks[i].get_left(), decoder_blocks[i + 1].get_right())
+            self.play(Create(line))
+
+        # Add arrows between encoder and decoder
+        arrow_to_decoder = Arrow(encoder_blocks[-1].get_right(), decoder_blocks[0].get_left())
+        self.play(Create(arrow_to_decoder))
+
+        self.wait(2)
+
