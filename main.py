@@ -181,10 +181,10 @@ class VQGANStructure(Scene):
         self.wait(2)
 
         # Define the 4 vectors with arbitrary values
-        vector1 = [[1.1], [2.2], [3.3], [4.4]]
-        vector2 = [[2.2], [3.3], [4.4], [5.5]]
-        vector3 = [[3.3], [4.4], [5.5], [6.6]]
-        vector4 = [[4.4], [5.5], [6.6], [7.7]]
+        vector1 = [[3.5], [7.4], [5.3], [0.8]]
+        vector2 = [[2.2], [5.4], [4.6], [5.2]]
+        vector3 = [[7.1], [1.4], [2.0], [0.2]]
+        vector4 = [[3.4], [2.8], [6.7], [2.3]]
 
         # Create the vectors using the Matrix class
         matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
@@ -291,7 +291,7 @@ class VQGANStructure(Scene):
         # Create a new VGroup that includes everything
         everything_with_images = Group(everything, image_iris1, image_iris2, combined_lines, loss_text)
 
-        self.play(everything_with_images.animate.scale(0.8).shift(DOWN * 1 + LEFT * 1.5))
+        self.play(everything_with_images.animate.scale(0.9).shift(DOWN * 1 + LEFT * 1))
 
         self.wait(2)
 
@@ -313,46 +313,89 @@ class VQGANStructure(Scene):
             [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
             color=PURPLE_E, fill_opacity=0
         ).next_to(discriminator_table, RIGHT*1)
-        discriminator_text = Text("Discriminator").scale(0.3).move_to(discriminator.get_center())
 
-        discriminator_group = VGroup(discriminator, discriminator_text, discriminator_table).scale(0.8).shift(UP * 2 + RIGHT * 2)
+
+        discriminator_group = VGroup(discriminator, discriminator_table).scale(0.9).shift(UP * 1.5 + RIGHT * 4.2)
+
+        #turn disccriminator group by 90 degrees
+
+        discriminator_group.rotate(PI/2)
+
+        discriminator_text = Text("Discriminator").scale(0.4).move_to(discriminator.get_center() + DOWN*0.25)
+
 
         self.play(FadeIn(discriminator, discriminator_table), Write(discriminator_text))
 
         self.wait(2)
 
+        image_iris2_copy = image_iris2.copy()
+        image_iris1_copy = image_iris1.copy()
+
         # animate iris images to the discriminator
 
         self.play(image_iris2.animate.move_to(discriminator_table.get_center()).scale(0))
 
-        fake_text = Text("Fake").scale(0.5).next_to(discriminator, RIGHT*1)
+        fake_text = Text("Fake").scale(0.5).next_to(discriminator, UP*1)
         self.play(Write(fake_text))
 
-        self.remove(fake_text)
+        self.play(FadeOut(fake_text))
+
+        self.wait(1)
+
         self.play(image_iris1.animate.move_to(discriminator_table.get_center()).scale(0))
 
-        self.wait(2)
-
-        real_text = Text("Real").scale(0.5).next_to(discriminator, RIGHT*1)
+        real_text = Text("Real").scale(0.5).next_to(discriminator, UP*1)
         self.play(Write(real_text))
 
         self.wait(2)
+
+        self.play(FadeOut(real_text))
 
 
         # Define the target position
         target_position1 = decoder.get_center()
         target_position2 = encoder.get_center()
 
+        random_numbers = [3.7, 2.2, 1.5, 0.5, 2.8, 4.6, 1.2, 2.2, 3.9, 2.5]
         # Initial position for the numbers
         for i in range(10):
-            random_number = round(random.uniform(0, 1), 1) * 10
-            number = Text(str(i))
+            number = Text(str(random_numbers[i]))
             number.move_to(discriminator.get_center()).scale(0.3)
             if i % 2 == 0:
-                self.play(number.animate.move_to(target_position1), run_time= 0.75)
+                self.play(number.animate.move_to(target_position1).set_opacity(0),run_time= 0.5)
             else:
-                self.play(number.animate.move_to(target_position2), run_time=0.75)
+                self.play(number.animate.move_to(target_position2).set_opacity(0), run_time=0.5)
+            self.remove(number)
 
+        self.wait(2)
+
+        self.play(FadeIn(image_iris2_copy, image_iris1_copy))
+
+        pixel_representation = MathTex(
+            r"1024 \times 1024 \times 3"
+        ).scale(0.4)
+        pixel_representation_copy = pixel_representation.copy()
+        latent_representation = MathTex(
+            r"256 \times 256 \times 4"
+        ).scale(0.4)
+        latent_representation_copy = latent_representation.copy()
+        codebook_size = Text("8,192 Vectors").scale(0.35)
+
+        pixel_representation.next_to(encoder_table, DOWN)
+        pixel_representation_copy.next_to(decoder_table, DOWN)
+
+        latent_representation.next_to(z_text, DOWN)
+        latent_representation_copy.next_to(z_quant_text, DOWN)
+
+        codebook_size.next_to(codebook, DOWN*0.5)
+
+        self.play(Write(pixel_representation), Write(pixel_representation_copy))
+        self.wait(2)
+
+        self.play(Write(latent_representation), Write(latent_representation_copy))
+        self.wait(2)
+
+        self.play(Write(codebook_size))
         self.wait(2)
 
 
