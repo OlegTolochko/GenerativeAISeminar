@@ -900,6 +900,12 @@ class StageBTraining(MovingCameraScene):
             efficient_net_u_net_line2.get_end()
         ])
 
+        #noise latent
+        p1_p2_arrow.set_opacity(1)
+        p1_p2_arrow_text.set_opacity(1)
+        pixel_grid2.set_opacity(1)
+        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
+
         self.play(MoveAlongPath(iris_image_pixelated, path, run_time=4))
 
         self.wait(2)
@@ -917,19 +923,19 @@ class StageBTraining(MovingCameraScene):
             u_net_line_animations.append(MoveAlongPath(iris_image_pixelated_copy, u_net_path))
             iris_images.append(iris_image_pixelated_copy)
 
-        self.play(u_net_line_animations, FadeOut(iris_image_pixelated))
+
+        self.wait(2)
+
+        pixel_grids[0].move_to(unet.get_center()).set_opacity(0).scale(0.1)
+        self.play(pixel_grid2.animate.move_to(unet.get_center()).fade(1).scale(0), u_net_line_animations, FadeOut(iris_image_pixelated))
 
         iris_image_scale_animations = []
         for iris_image in iris_images:
             iris_image_scale_animations.append(iris_image.animate.scale(0))
 
-        self.play(iris_image_scale_animations)
-        self.wait(2)
-
-        p1_p2_arrow.set_opacity(1)
-        p1_p2_arrow_text.set_opacity(1)
-        pixel_grid2.set_opacity(1)
-        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
+        # Animate pixel_grid_denoised appearing from the last up block
+        self.play(pixel_grids[0].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(
+            1).scale(10 * 0.8), iris_image_scale_animations)
 
         self.wait(2)
 
@@ -949,18 +955,23 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
+
+class EverythingCombined(MovingCameraScene):
+    def setup(self):
+        MovingCameraScene.setup(self)
+
+    def construct(self):
+        a = 1
+
 class UNet(MovingCameraScene):
     def setup(self):
         MovingCameraScene.setup(self)
 
     def construct(self):
-
-        self.wait(2)
-
         block_width = 0.25
-        block_height = 2.5
+        block_height = 1.75
         block_color1 = BLUE
-        block_color2 = TEAL
+        block_color2 = ORANGE
 
         # Function to create a block
         def create_block(width, height, color):
@@ -971,10 +982,11 @@ class UNet(MovingCameraScene):
         block1 = create_block(block_width, block_height, block_color1)
         block2 = create_block(block_width, block_height, block_color2)
 
+
         down_block1.add(block1, block2)
         down_block1.arrange(RIGHT, buff=0.1)
-
-        def create_next_block_group(sign, block_group):
+        down_block1.move_to(LEFT*3 + UP*2.75)
+        def create_next_block_group(sign, block_group, width_multiplier = 0.05, height_multiplier = 0.5):
             new_block_group = VGroup()
 
             for block in block_group:
@@ -983,25 +995,160 @@ class UNet(MovingCameraScene):
 
                 # Adjust the dimensions based on the sign
                 if sign > 0:
-                    new_width = current_width + 0.05
-                    new_height = current_height - 0.5
+                    new_width = current_width + width_multiplier
+                    new_height = current_height - height_multiplier
                 else:
-                    new_width = current_width - 0.05
-                    new_height = current_height + 0.5
+                    new_width = current_width - width_multiplier
+                    new_height = current_height + height_multiplier
 
                 # Create a new block with the adjusted dimensions
                 new_block = create_block(new_width, new_height, block.get_fill_color())
                 new_block_group.add(new_block)
 
             new_block_group.arrange(RIGHT, buff=0.1)
-            new_block_group.next_to(block_group, RIGHT, buff=0.25)
+            new_block_group.next_to(block_group, RIGHT + DOWN*2, buff=0.25)
 
             return new_block_group
 
         down_block2 = create_next_block_group(1, down_block1)
         down_block3 = create_next_block_group(1, down_block2)
 
+        middle_block = create_next_block_group(1, down_block3, width_multiplier=0.25, height_multiplier=0.3)
+        middle_block.add(create_block(middle_block[0].width, middle_block[0].height, block_color1))
+        middle_block.arrange(RIGHT, buff=0.1).next_to(down_block3, RIGHT + DOWN*2, buff=0.25)
+
         down_blocks = VGroup(down_block1, down_block2, down_block3)
+
+        up_blocks = VGroup(down_block1.copy().scale([-1, 1, 1]), down_block2.copy().scale([-1, 1, 1]), down_block3.copy().scale([-1, 1, 1])).scale([-1, 1, 1])
+
+        up_blocks.next_to(middle_block, RIGHT + UP*2, buff=0.25)
+
+        legend = VGroup()
+        residual_example = VGroup()
+        example_block_residual = create_block(0.5, 0.5, block_color1)
+        example_block_attention = create_block(0.5, 0.5, block_color2)
+        example_block_attention.next_to(example_block_residual, DOWN, buff=0.15)
+
+        example_block_residual_text = Text("Residual Block").scale(0.3).next_to(example_block_residual, RIGHT, buff=0.1)
+        residual_example.add(example_block_residual, example_block_residual_text)
+
+        attention_example = VGroup()
+
+        example_block_attention_text = Text("Attention Block").scale(0.3).next_to(example_block_attention, RIGHT, buff=0.1)
+        attention_example.add(example_block_attention, example_block_attention_text)
+
+
+        legend.add(residual_example, attention_example)
+        legend.to_edge(DR)
+        self.play(FadeIn(legend))
+
+        # Add all blocks to the scene
+        self.play(FadeIn(down_blocks), FadeIn(up_blocks), FadeIn(middle_block))
+
+        self.wait(2)
+
+        dashed_line_animations = []
+        for block_left, block_right in zip(down_blocks, up_blocks):
+            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1).add_tip(tip_width=0.2, tip_length=0.2)
+            dashed_line_animations.append(Create(dashed_line))
+            dashed_line_animations.append(Write(Paragraph("concatenation","(skip connection)", alignment='center').scale(0.3).next_to(dashed_line, UP*0.25)))
+
+        arrow_shift = 0.065
+        def create_block_to_block_line_down(block1, block2):
+            line = Line(block1.get_bottom() + RIGHT*arrow_shift, (block1.get_bottom()[0], block2.get_center()[1], 0)+ RIGHT*arrow_shift)
+            line2 = Line(line.get_bottom(), block2.get_left())
+            return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
+        def create_block_to_block_line_up(block1, block2):
+            line = Line(block1.get_right(), (block2.get_bottom()[0], block1.get_right()[1], 0) + LEFT*arrow_shift)
+            line2 = Line(line.get_right(), block2.get_bottom() + LEFT*arrow_shift)
+            return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
+
+        down_lines = VGroup()
+        up_lines = VGroup()
+        down_lines.add(create_block_to_block_line_down(down_block1[1], down_block2[0]))
+        down_lines.add(create_block_to_block_line_down(down_block2[1], down_block3[0]))
+        down_lines.add(create_block_to_block_line_down(down_block3[1], middle_block[0]))
+
+        up_lines.add(create_block_to_block_line_up(middle_block[2], up_blocks[2][0]))
+        up_lines.add(create_block_to_block_line_up(up_blocks[2][1], up_blocks[1][0]))
+        up_lines.add(create_block_to_block_line_up(up_blocks[1][1], up_blocks[0][0]))
+
+        self.play(FadeIn(down_lines), FadeIn(up_lines))
+        self.wait(2)
+
+        self.play(*dashed_line_animations)
+        self.wait(2)
+
+        timestep_lines = VGroup()
+
+        main_timestep_line = Line(start=(down_block1.get_left()[0] - 0.5, middle_block.get_bottom()[1] - 0.5, 0), end=(up_blocks[0][0].get_bottom()[0], middle_block.get_bottom()[1] - 0.5, 0) + RIGHT*arrow_shift, color=TEAL)
+
+        timestep_text = Paragraph("Timestep", "Embedding", alignment='center').scale(0.3).next_to(main_timestep_line, LEFT*0.5)
+        self.play(Create(main_timestep_line), Write(timestep_text))
+
+        for block_left, block_right in zip(down_blocks, up_blocks):
+            timestep_lines.add(Line(start=(block_left[0].get_bottom()[0], main_timestep_line.get_y(), 0), end=block_left[0].get_bottom(), color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
+            timestep_lines.add(Line(start=(block_right[0].get_bottom()[0], main_timestep_line.get_y(), 0) + RIGHT*arrow_shift, end=block_right[0].get_bottom() + RIGHT*arrow_shift, color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
+
+        timestep_lines.add(
+            Line(start=(middle_block[0].get_bottom()[0], main_timestep_line.get_y(), 0), end=middle_block[0].get_bottom(),
+                 color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
+        timestep_lines.add(
+            Line(start=(middle_block[2].get_bottom()[0], main_timestep_line.get_y(), 0),
+                 end=middle_block[2].get_bottom(),
+                 color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
+
+        self.play(FadeIn(timestep_lines))
+        self.wait(2)
+
+        embedding_lines = VGroup()
+
+        main_embedding_line = Line(start=(down_block1.get_left()[0] - 0.5, middle_block.get_bottom()[1] - 1.25, 0), end=(up_blocks[0][1].get_bottom()[0], middle_block.get_bottom()[1] - 1.25, 0), color=PURPLE)
+
+        for block_left, block_right in zip(down_blocks, up_blocks):
+            embedding_lines.add(Line(start=(block_left[1].get_bottom()[0], main_embedding_line.get_y(), 0) + LEFT * arrow_shift,
+                                    end=block_left[1].get_bottom() + LEFT * arrow_shift, color=PURPLE).add_tip(tip_width=0.1, tip_length=0.1))
+            embedding_lines.add(
+                Line(start=(block_right[1].get_bottom()[0], main_embedding_line.get_y(), 0),
+                     end=block_right[1].get_bottom(), color=PURPLE).add_tip(tip_width=0.1, tip_length=0.1))
+
+        embedding_lines.add(
+            Line(start=(middle_block[1].get_bottom()[0], main_embedding_line.get_y(), 0),
+                 end=middle_block[1].get_bottom(),
+                 color=PURPLE).add_tip(tip_width=0.1, tip_length=0.1))
+
+        embedding_image = ImageMobject("resources/images/iris_pixelated.png").scale(0.15).next_to(main_embedding_line, LEFT*0.5)
+        self.play(Create(main_embedding_line), FadeIn(embedding_image))
+        self.play(FadeIn(embedding_lines))
+
+        self.wait(2)
+
+        image_shift_factor = 0.5
+        noised_image1 = ImageMobject("resources/images/pixelated/noised/48x48pixelated_noised.png").scale(0.3).next_to(down_block1, LEFT*image_shift_factor)
+        noised_image2 = ImageMobject("resources/images/pixelated/noised/32x32pixelated_noised.png").scale(0.3).next_to(down_block2, LEFT*image_shift_factor)
+        noised_image3 = ImageMobject("resources/images/pixelated/noised/16x16pixelated_noised.png").scale(0.4).next_to(down_block3, LEFT*image_shift_factor)
+        noised_image4 = ImageMobject("resources/images/pixelated/noised/8x8pixelated_noised.png").scale(0.5).next_to(middle_block, LEFT*image_shift_factor)
+
+        unnoised_image1 = ImageMobject("resources/images/pixelated/48x48pixelated.png").scale(0.3).next_to(up_blocks[0], RIGHT*image_shift_factor)
+        unnoised_image2 = ImageMobject("resources/images/pixelated/32x32pixelated.png").scale(0.3).next_to(up_blocks[1], RIGHT*image_shift_factor)
+        unnoised_image3 = ImageMobject("resources/images/pixelated/16x16pixelated.png").scale(0.4).next_to(up_blocks[2], RIGHT*image_shift_factor)
+        unnoised_image4 = ImageMobject("resources/images/pixelated/8x8pixelated.png").scale(0.5).next_to(middle_block, RIGHT*image_shift_factor)
+
+
+        noised_image1_copy = noised_image1.copy()
+
+        self.play(FadeIn(noised_image1))
+        self.play(FadeTransform(noised_image1, noised_image2))
+        self.play(FadeTransform(noised_image2, noised_image3))
+        self.play(FadeTransform(noised_image3, noised_image4))
+
+        self.play(FadeTransform(noised_image4, unnoised_image4))
+        self.play(FadeTransform(unnoised_image4, unnoised_image3))
+        self.play(FadeTransform(unnoised_image3, unnoised_image2))
+        self.play(FadeTransform(unnoised_image2, unnoised_image1))
+
+        self.wait(2)
+
 
 class VQGANLimit(MovingCameraScene):
     def setup(self):
@@ -1091,63 +1238,3 @@ class VQGANLimit(MovingCameraScene):
         self.play(FadeTransform(pixelated32, pixelated16), FadeTransform(blurred_iris_image, blurred_iris_image2))
 
         self.wait(2)
-
-class UNetVisualization(Scene):
-    def construct(self):
-        # Define stages
-        encoder_stages = [4, 4, 14, 4]
-        decoder_stages = [4, 4, 14, 4]
-        cross_attention_heads = [0, 10, 20, 20]
-        colors = [BLUE, GREEN, YELLOW, RED]
-
-        # Encoder part
-        encoder_text = Text("Encoder").to_edge(LEFT)
-        self.play(Write(encoder_text))
-
-        encoder_blocks = VGroup()
-        for i, blocks in enumerate(encoder_stages):
-            stage = VGroup(*[
-                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
-                for _ in range(blocks)
-            ]).arrange(DOWN, buff=0.1)
-            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
-            encoder_blocks.add(VGroup(stage_text, stage))
-
-        encoder_blocks.arrange(RIGHT, buff=1).next_to(encoder_text, RIGHT, buff=1)
-        self.play(Write(encoder_blocks))
-
-        # Draw connections and add cross-attention heads
-        for i in range(len(encoder_blocks) - 1):
-            line = Line(encoder_blocks[i].get_right(), encoder_blocks[i + 1].get_left())
-            self.play(Create(line))
-            if cross_attention_heads[i + 1] > 0:
-                cross_attention_text = Text(f"{cross_attention_heads[i + 1]} heads").scale(0.5).next_to(line, UP)
-                self.play(Write(cross_attention_text))
-
-        # Decoder part
-        decoder_text = Text("Decoder").to_edge(RIGHT)
-        self.play(Write(decoder_text))
-
-        decoder_blocks = VGroup()
-        for i, blocks in enumerate(decoder_stages):
-            stage = VGroup(*[
-                Square(side_length=0.5, fill_color=colors[i], fill_opacity=0.7)
-                for _ in range(blocks)
-            ]).arrange(DOWN, buff=0.1)
-            stage_text = Text(f"Stage {i + 1}").next_to(stage, UP)
-            decoder_blocks.add(VGroup(stage_text, stage))
-
-        decoder_blocks.arrange(RIGHT, buff=1).next_to(decoder_text, LEFT, buff=1)
-        self.play(Write(decoder_blocks))
-
-        # Draw connections
-        for i in range(len(decoder_blocks) - 1):
-            line = Line(decoder_blocks[i].get_left(), decoder_blocks[i + 1].get_right())
-            self.play(Create(line))
-
-        # Add arrows between encoder and decoder
-        arrow_to_decoder = Arrow(encoder_blocks[-1].get_right(), decoder_blocks[0].get_left())
-        self.play(Create(arrow_to_decoder))
-
-        self.wait(2)
-
