@@ -939,29 +939,140 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-        path = ArcBetweenPoints(start=up_blocks[0].get_center() + RIGHT, end=pixel_grid2.get_center(), angle=PI)
-
-        for i in range(noise_count):
-            pixel_grids[noise_count - 1 - i].move_to(unet.get_center()).set_opacity(0).scale(0.1)
-
-            # Animate pixel_grid2 disappearing behind the first down block
-            self.play(pixel_grids[noise_count - i].animate.move_to(unet.get_center()).fade(1).scale(0))
-
-            # Animate pixel_grid_denoised appearing from the last up block
-            self.play(pixel_grids[noise_count - i - 1].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(
-                1).scale(10 * 0.8))
-
-            self.play(MoveAlongPath(pixel_grids[noise_count - i - 1], path))
-
-        self.wait(2)
-
 
 class EverythingCombined(MovingCameraScene):
     def setup(self):
         MovingCameraScene.setup(self)
 
     def construct(self):
-        a = 1
+        residual_color = BLUE
+        cross_attention_color = GREEN
+        timestep_color = ORANGE
+
+        # Block dimensions
+        block_width = 0.5
+        block_height = 2.5
+
+        # Create blocks for the neural network
+        example_blocks = VGroup()
+
+        def create_block(width, height, color):
+            return Rectangle(width=width, height=height, fill_color=color, fill_opacity=1, stroke_width=0)
+
+        for i in range(3):
+            color = residual_color if i % 3 == 0 else cross_attention_color if i % 3 == 1 else timestep_color
+            block = Rectangle(width=block_width, height=block_height, fill_color=color, fill_opacity=1, stroke_width=0)
+            example_blocks.add(block)
+
+        for i, block in enumerate(example_blocks):
+            block.next_to(example_blocks[i - 1], RIGHT, buff=2.25)
+
+        # Annotate specific blocks
+        residual_block = example_blocks[0]
+        attention_block = example_blocks[1]
+        timestep_block = example_blocks[2]
+
+        example_setup = VGroup(example_blocks)
+        example_setup.scale(0.2)
+
+        target_position = residual_block.get_left() + LEFT * 0.2
+
+        for i, block in enumerate(example_blocks):
+            if i == 0:
+                block.move_to(target_position)
+            else:
+                block.next_to(target_position + (i - 1) * RIGHT * 0.125, RIGHT, buff=0.075)
+
+        block_group = VGroup(example_blocks)
+        num_copies = 3
+        previous_blocks = example_blocks
+        for _ in range(num_copies):
+            new_blocks = previous_blocks.copy()
+            new_blocks.next_to(previous_blocks, RIGHT, buff=0.075)
+            previous_blocks = new_blocks
+            block_group.add(new_blocks)
+
+        block_group.scale(3).move_to(ORIGIN)
+
+        legend = VGroup()
+        residual_example = VGroup()
+        example_block_residual = create_block(0.5, 0.5, residual_color)
+        example_block_attention = create_block(0.5, 0.5, cross_attention_color)
+        example_block_timestep = create_block(0.5, 0.5, timestep_color)
+
+        example_block_attention.next_to(example_block_residual, DOWN, buff=0.15)
+        example_block_timestep.next_to(example_block_attention, DOWN, buff=0.15)
+
+        example_block_residual_text = Text("Residual Block").scale(0.3).next_to(example_block_residual, RIGHT, buff=0.1)
+        residual_example.add(example_block_residual, example_block_residual_text)
+
+        attention_example = VGroup()
+
+        example_block_attention_text = Paragraph("Attention Block +", "Cross Attention Block", alignment='left').scale(0.3).next_to(example_block_attention, RIGHT,
+                                                                                  buff=0.1)
+
+        timestep_example = VGroup()
+        example_timestep_text = Text("Timestep Block").scale(0.3).next_to(example_block_timestep, RIGHT, buff=0.1)
+        timestep_example.add(example_block_timestep, example_timestep_text)
+        attention_example.add(example_block_attention, example_block_attention_text)
+
+        legend.add(residual_example, attention_example, timestep_example)
+        legend.to_edge(DR)
+
+        self.play(FadeIn(block_group), FadeIn(legend))
+
+        self.wait(2)
+
+
+
+        self.wait(2)
+
+        main_convnext_line = Line(start=block_group[0].get_bottom() + DOWN * 0.5, end=block_group[num_copies].get_bottom() + DOWN * 0.5)
+
+        self.play(Create(main_convnext_line))
+
+        convnext_attention_lines = []
+        for block in block_group:
+            line = Line((block.get_bottom()[0], main_convnext_line.get_y(), 0), block.get_bottom()).add_tip(tip_width=0.1, tip_length=0.1)
+            convnext_attention_lines.append(line)
+
+        convnext_text_line = Line(start=main_convnext_line.get_center(), end=main_convnext_line.get_center() + DOWN*0.5)
+        self.play(*[Create(line) for line in convnext_attention_lines], Create(convnext_text_line))
+
+        convnext_text = Paragraph("Textual Embedding", "e.g. Realistic Photo of Sausages on a Plate", alignment='center').scale(0.3).next_to(convnext_text_line, DOWN*0.25)
+        self.play(Write(convnext_text))
+
+        self.wait(2)
+
+        rows, cols, cell_size = 4, 4, 1
+        pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.2)
+
+        noise_count = 5
+        pixel_grids = [pixel_grid1.copy()]
+        for i in range(noise_count):
+            colors_with_noise = [[PixelGrid.blend_with_noise(color, blend_factor=0.25) for color in row] for row in
+                                 pixel_grids[i].colors]
+            pixel_grid = PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.2)
+            pixel_grids.append(pixel_grid)
+
+        for pixel_grid in pixel_grids:
+            pixel_grid.next_to(block_group, RIGHT, buff=0.5)
+
+        self.play(FadeIn(pixel_grids[noise_count].next_to(block_group, LEFT, buff=0.5)))
+
+        noised24x24_latent_text = MathTex('r_{24 \times 24}').scale(0.3).next_to(pixel_grids[noise_count], DOWN)
+        self.play()
+
+        path = ArcBetweenPoints(start=pixel_grids[1].get_center(), end=pixel_grids[noise_count].get_center(), angle=PI)
+
+        for i in range(noise_count):
+            self.play(FadeTransform(pixel_grids[noise_count - i], pixel_grids[noise_count - 1 - i]), run_time=0.5)
+
+            if i < noise_count-1:
+                self.play(MoveAlongPath(pixel_grids[noise_count - i - 1], path))
+
+        self.wait(2)
+
 
 class UNet(MovingCameraScene):
     def setup(self):
