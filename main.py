@@ -4,13 +4,27 @@ from manim import config
 # Set the background color
 config.background_color = "#0D1219"
 #Config for white background:
-#config.background_color = WHITE
-#Tex.set_default(color=BLACK)
-#MathTex.set_default(color=BLACK)
-#Text.set_default(color=BLACK)
+config.background_color = WHITE
+Tex.set_default(color=BLACK)
+MathTex.set_default(color=BLACK)
+Text.set_default(color=BLACK)
+
+
+encoder_input_color = BLACK
+decoder_output_color = BLACK
+encoder_color = GREEN
+z_color = BLUE
+vq_color = PURPLE
+codebook_color = BLUE_E
+decoder_color = RED_A
+
+line_color = BLACK
 
 def Text2(t):
     return Text(t,font="Poppins")
+
+def Arrow2(left, right, buff=0.0, color=BLACK):
+    return Arrow(left, right, buff=buff, color=color)
 
 def addWatermark():
     watermark = ImageMobject("resources/images/University_LMU_background.png")
@@ -24,13 +38,6 @@ def addWatermark():
 class VQGANStructure(Scene):
     def construct(self):
         # Colors
-        encoder_input_color = WHITE
-        decoder_output_color = WHITE
-        encoder_color = GREEN
-        z_color = BLUE
-        vq_color = PURPLE
-        codebook_color = BLUE_E
-        decoder_color = YELLOW
 
         num_rows = 8
         table_data = [["a"] for _ in range(num_rows)]
@@ -51,7 +58,7 @@ class VQGANStructure(Scene):
         # Fade in the table
         self.play(FadeIn(encoder_table))
 
-        self.wait(2)
+        self.wait(1)
 
         # Encoder
         encoder = Polygon(
@@ -98,14 +105,54 @@ class VQGANStructure(Scene):
 
         self.play(FadeIn(decoder_table))
 
-        self.wait(2)
+        self.wait(1)
 
         # Codebook
         codebook = Rectangle(width=2.5, height=1, color=codebook_color, fill_opacity=0).shift(UP * 2, RIGHT * 0.5)
         codebook_text = Text("Codebook").scale(0.5).move_to(codebook.get_center())
         self.play(FadeIn(codebook), Write(codebook_text))
 
-        self.wait(2)
+        self.wait(1)
+
+        #group all previous elements
+        all_elements = VGroup(encoder, encoder_text, encoder_table, z, z_text, vq, vq_text, z_quant, z_quant_text, decoder, decoder_text, decoder_table, codebook, codebook_text)
+
+        self.play(all_elements.animate.shift(LEFT*2.2 + DOWN*0.85))
+
+
+        discriminator_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": encoder_input_color},
+            v_buff=1.3
+        )
+        discriminator_table.get_columns().set_opacity(0)
+        discriminator_table.scale(0.25).shift(UP * 1)
+
+        self.wait(1)
+
+        # Discriminator
+        discriminator = Polygon(
+            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
+            color=PURPLE_E, fill_opacity=0
+        ).next_to(discriminator_table, RIGHT * 1)
+
+        discriminator_group = VGroup(discriminator, discriminator_table).scale(0.9).shift(UP * 1.5 + RIGHT * 4.2)
+
+        # turn disccriminator group by 90 degrees
+
+        discriminator_group.rotate(PI / 2)
+
+        discriminator_text = Text("Discriminator").scale(0.4).move_to(discriminator.get_center() + DOWN * 0.25)
+
+        self.play(FadeIn(discriminator, discriminator_table), Write(discriminator_text))
+
+        discriminator_group.add(discriminator_text)
+        self.wait(1)
+        self.play(FadeOut(discriminator_group))
+        self.play(all_elements.animate.shift(RIGHT*2.5 + UP*1))
+        self.wait(1)
+
 
         # Load the image
         image = ImageMobject("resources/images/iris.jpg")
@@ -115,13 +162,8 @@ class VQGANStructure(Scene):
         self.play(FadeIn(image))
 
         # Move the image to the middle of the table and shrink it
-        self.play(image.animate.move_to(encoder_table.get_center()).scale(0))
+        self.play(image.animate.move_to(z.get_center()).scale(0))
         self.remove(image)
-
-        values = ["3.7", "2.2", "1.5", "0.5", "2.8", "4.6", "1.2", "2.2"]
-
-        # Create text objects for the values at the center of the table
-        value_texts = [Text(value).scale(0.25).move_to(encoder_table.get_center()) for value in values]
 
         vector_values = [[3.3], [7.5], [5.3], [1.3]]
 
@@ -129,39 +171,15 @@ class VQGANStructure(Scene):
         z_vector = Matrix(vector_values, v_buff=0.5, bracket_h_buff=0.2)
         z_vector.scale(0.5)
         z_vector.move_to(z.get_center())
-
-        # Animate the values moving to each cell simultaneously
-        animations = []
-        for i, value_text in enumerate(value_texts):
-            cell = encoder_table.get_cell((i + 1, 1))
-            animations.append(value_text.animate.move_to(cell.get_center()))
         encoder_z_arrow = Arrow(encoder.get_right(), z_vector.get_left(), buff=0.1)
-        self.play(*animations, GrowArrow(encoder_z_arrow))
 
-        # Ensure the value_texts are properly added to the table cells
-        for i, value_text in enumerate(value_texts):
-            cell = encoder_table.get_cell((i + 1, 1))
-            value_text.move_to(cell.get_center())  # Ensure the text is correctly positioned in the cell
-            self.add(value_text)
-            encoder_table.add(value_text)  # Add the text to the table
-
-        self.wait(2)
-
-        # Create copies of the values to animate them moving somewhere else
-        moving_values = [value_text.copy() for value_text in value_texts]
-        new_location = z.get_center()
-        move_animations = [value.animate.move_to(new_location) for value in moving_values]
-
-        self.play(*move_animations, z_text.animate.next_to(z, DOWN))
-        for value in moving_values:
-            self.remove(value)
-
+        self.play(z_text.animate.next_to(z, DOWN))
         # Smoothly replace z with z_vector
-        self.play(Transform(z, z_vector))
+        self.play(FadeTransform(z, z_vector))
 
-        self.wait(2)
+        self.wait(1)
 
-        zoom_group = VGroup(z_vector, encoder_table, z, encoder, z_text, encoder_text, vq, vq_text, z_quant_text, z_quant, codebook_text, codebook, encoder_z_arrow)
+        zoom_group = VGroup(z_vector, encoder_table, encoder, z_text, encoder_text, vq, vq_text, z_quant_text, z_quant, codebook_text, codebook, encoder_z_arrow)
         zoom_center = zoom_group.get_center()
 
         fade_out_group = VGroup(decoder,decoder_text,decoder_table)
@@ -172,19 +190,15 @@ class VQGANStructure(Scene):
             FadeOut(fade_out_group)
         )
 
-        self.wait(2)
-
         self.play(
             codebook_text.animate.next_to(codebook, UP)
         )
 
-        self.wait(2)
-
         # Define the 4 vectors with arbitrary values
-        vector1 = [[3.5], [7.4], [5.3], [0.8]]
-        vector2 = [[2.2], [5.4], [4.6], [5.2]]
-        vector3 = [[7.1], [1.4], [2.0], [0.2]]
-        vector4 = [[3.4], [2.8], [6.7], [2.3]]
+        vector1 = [[3.5], [7.4], ["5.3"], [0.8]]
+        vector2 = [[2.2], [5.4], ["4.6"], [5.2]]
+        vector3 = [[7.1], [1.4], ["2.0"], [0.2]]
+        vector4 = [[3.4], [2.8], ["6.7"], [2.3]]
 
         # Create the vectors using the Matrix class
         matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
@@ -200,26 +214,22 @@ class VQGANStructure(Scene):
         # Add the vectors to the scene
         self.play(FadeIn(vectors))
 
-        self.wait(2)
 
-        z_vq_arrow = Arrow(z.get_right(), vq.get_left(), buff=0.1)
+        z_vq_arrow = Arrow2(z_vector.get_right(), vq.get_left(), buff=0.1)
         self.play(GrowArrow(z_vq_arrow))
 
         self.wait(1)
 
-        vq_matrix1__arrow = Arrow(vq.get_top(), matrix1.get_bottom(), buff=0.1)
+        vq_matrix1__arrow = Arrow2(vq.get_top(), matrix1.get_bottom(), buff=0.1)
         self.play(GrowArrow(vq_matrix1__arrow))
 
-        self.wait(2)
-
         self.play(z_quant_text.animate.next_to(z_quant, DOWN))
-        self.wait(2)
 
         matrix1_copy = matrix1.copy()
         zoom_group.add(matrix1_copy)
 
         self.play(matrix1_copy.animate.move_to(z_quant.get_center()).scale(1.5), FadeOut(z_quant))
-        vq_z_quant_arrow = Arrow(vq.get_right(), matrix1_copy.get_left(), buff=0.1)
+        vq_z_quant_arrow = Arrow2(vq.get_right(), matrix1_copy.get_left(), buff=0.1)
         self.play(GrowArrow(vq_z_quant_arrow))
         self.wait(2)
 
@@ -228,38 +238,16 @@ class VQGANStructure(Scene):
 
         self.remove(z_quant)
         zoom_group.remove(z_quant)
-        self.wait(2)
         self.play(zoom_group.animate.shift(UP*1).scale(1/1.5).move_to(zoom_center + (codebook_text.get_top() - codebook_text.get_bottom())/2), FadeIn(fade_out_group))
 
         self.wait(2)
-        matrix1_decoder_arrow = Arrow(matrix1_copy.get_right(), decoder.get_left(), buff=0.1)
+        matrix1_decoder_arrow = Arrow2(matrix1_copy.get_right(), decoder.get_left(), buff=0.1)
         self.play(GrowArrow(matrix1_decoder_arrow))
         self.wait(2)
 
         #matrix1_copy_copy = matrix1_copy.copy()
         #self.play(matrix1_copy_copy.animate.move_to(decoder_table.get_center()).scale(0))
         #self.remove(matrix1_copy_copy)
-
-        values = ["3.9", "2.5", "1.3", "0.4", "3.4", "3.9", "1.2", "2.0"]
-
-        # Create text objects for the values at the center of the table
-        value_texts = [Text(value).scale(0.25).move_to(matrix1_copy.get_center()) for value in values]
-
-        # Animate the values moving to each cell simultaneously
-        animations = []
-        for i, value_text in enumerate(value_texts):
-            cell = decoder_table.get_cell((i + 1, 1))
-            animations.append(value_text.animate.move_to(cell.get_center()))
-        self.play(*animations)
-
-        # Ensure the value_texts are properly added to the table cells
-        for i, value_text in enumerate(value_texts):
-            cell = decoder_table.get_cell((i + 1, 1))
-            value_text.move_to(cell.get_center())  # Ensure the text is correctly positioned in the cell
-            self.add(value_text)
-            decoder_table.add(value_text)  # Add the text to the table
-
-        self.wait(2)
 
         everything = VGroup(zoom_group, matrix1_decoder_arrow, decoder, decoder_text, decoder_table, z_vq_arrow,
                             vq_z_quant_arrow, vectors)
@@ -276,11 +264,11 @@ class VQGANStructure(Scene):
         self.wait(2)
 
         # Create lines and text
-        line = Line(start=image_iris1.get_bottom() + DOWN * 1.5, end=image_iris2.get_bottom() + DOWN * 1.5, color=WHITE)
+        line = Line(start=image_iris1.get_bottom() + DOWN * 1.5, end=image_iris2.get_bottom() + DOWN * 1.5, color=line_color)
         loss_text = Text("Reconstruction Loss").scale(0.4).next_to(line, DOWN * 0.5)
 
-        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + UP * 1.5, color=WHITE)
-        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + UP * 1.5, color=WHITE)
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + UP * 1.5, color=line_color)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + UP * 1.5, color=line_color)
 
         combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
 
@@ -297,36 +285,8 @@ class VQGANStructure(Scene):
 
         self.play(FadeOut(combined_lines, loss_text))
 
-        discriminator_table = Table(
-            table_data,
-            include_outer_lines=True,
-            line_config={"color": encoder_input_color},
-            v_buff=1.3
-        )
-        discriminator_table.get_columns().set_opacity(0)
-        discriminator_table.scale(0.25)
-
         self.wait(2)
-
-        # Discriminator
-        discriminator = Polygon(
-            [-3.5, -1.5, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.5, 0],
-            color=PURPLE_E, fill_opacity=0
-        ).next_to(discriminator_table, RIGHT*1)
-
-
-        discriminator_group = VGroup(discriminator, discriminator_table).scale(0.9).shift(UP * 1.5 + RIGHT * 4.2)
-
-        #turn disccriminator group by 90 degrees
-
-        discriminator_group.rotate(PI/2)
-
-        discriminator_text = Text("Discriminator").scale(0.4).move_to(discriminator.get_center() + DOWN*0.25)
-
-
-        self.play(FadeIn(discriminator, discriminator_table), Write(discriminator_text))
-
-        self.wait(2)
+        self.play(FadeIn(discriminator_group.shift(DOWN*1)))
 
         image_iris2_copy = image_iris2.copy()
         image_iris1_copy = image_iris1.copy()
@@ -380,6 +340,12 @@ class VQGANStructure(Scene):
         ).scale(0.4)
         latent_representation_copy = latent_representation.copy()
         codebook_size = Text("8,192 Vectors").scale(0.35)
+        matrix1.mob_matrix[2] = "..."
+        matrix2.mob_matrix[2] = "..."
+        matrix3.mob_matrix[2] = "..."
+        matrix4.mob_matrix[2] = "..."
+        z_vector.mob_matrix[2] = "..."
+        matrix1_copy.mob_matrix[2] = "..."
 
         pixel_representation.next_to(encoder_table, DOWN)
         pixel_representation_copy.next_to(decoder_table, DOWN)
@@ -499,7 +465,7 @@ class StageCTraining(MovingCameraScene):
         iris_image.scale(0.05).move_to(database_image.get_center())
 
         self.play(iris_image.animate.scale(4))
-        database_image_efficient_net_table_arrow = Arrow(database_image.get_right(), efficient_net_table.get_left(), buff=0.1)
+        database_image_efficient_net_table_arrow = Arrow2(database_image.get_right(), efficient_net_table.get_left(), buff=0.1)
         self.play(iris_image.animate.move_to(efficient_net.get_center()).scale(0), GrowArrow(database_image_efficient_net_table_arrow))
 
         rows, cols, cell_size = 4,4,1
@@ -518,7 +484,7 @@ class StageCTraining(MovingCameraScene):
 
         pixel_grid1_dummy = pixel_grid1.copy().scale(4).next_to(efficient_net, RIGHT*3).set_opacity(0)
 
-        efficient_net_pixel_grid1_arrow = Arrow(efficient_net.get_right(), pixel_grid1_dummy.get_left(), buff=0.1)
+        efficient_net_pixel_grid1_arrow = Arrow2(efficient_net.get_right(), pixel_grid1_dummy.get_left(), buff=0.1)
 
         self.play(pixel_grid1.animate.scale(4).next_to(efficient_net, RIGHT*3), GrowArrow(efficient_net_pixel_grid1_arrow))
 
@@ -526,7 +492,7 @@ class StageCTraining(MovingCameraScene):
         pixel_grid2.next_to(pixel_grid1, RIGHT * 3)
 
         self.wait(2)
-        pixel_grid1_pixel_grid2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
+        pixel_grid1_pixel_grid2_arrow = Arrow2(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
         p1_p2_arrow_text = Text("Noise").scale(0.3)
         self.add(p1_p2_arrow_text.next_to(pixel_grid1_pixel_grid2_arrow, UP*0.5))
 
@@ -557,29 +523,29 @@ class StageCTraining(MovingCameraScene):
         self.wait(2)
 
         diffusion_model_input_text = Text("Image Caption + timestep").scale(0.3).next_to(diffusion_model, DOWN*3)
-        diffusion_model_input_text_arrow = Arrow(diffusion_model_input_text.get_top(), diffusion_model.get_bottom(), buff=0.1)
+        diffusion_model_input_text_arrow = Arrow2(diffusion_model_input_text.get_top(), diffusion_model.get_bottom(), buff=0.1)
         self.play(FadeIn(diffusion_model_input_text), GrowArrow(diffusion_model_input_text_arrow))
 
         self.wait(2)
 
         pixel_grid2_copy = pixel_grid2.copy()
-        p2c_diffusion_model_arrow = Arrow(pixel_grid2.get_right(), diffusion_model.get_left(), buff=0.1)
+        p2c_diffusion_model_arrow = Arrow2(pixel_grid2.get_right(), diffusion_model.get_left(), buff=0.1)
         self.play(pixel_grid2_copy.animate.move_to(diffusion_model.get_center()).scale(0), GrowArrow(p2c_diffusion_model_arrow))
 
         pixel_grid1_copy_dummy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25).set_opacity(0)
         pixel_grid1_copy_dummy.next_to(diffusion_model, RIGHT*4).scale(4)
 
         pixel_grid1_copy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25)
-        diffusion_model_p1c_arrow = Arrow(diffusion_model.get_right(), pixel_grid1_copy_dummy.get_left(), buff=0.1)
+        diffusion_model_p1c_arrow = Arrow2(diffusion_model.get_right(), pixel_grid1_copy_dummy.get_left(), buff=0.1)
         self.play(pixel_grid1_copy.animate.next_to(diffusion_model, RIGHT*4).scale(4), GrowArrow(diffusion_model_p1c_arrow))
 
         self.wait(2)
 
-        line = Line(start=pixel_grid1.get_top() + UP * 0.5, end=pixel_grid1_copy.get_top() + UP * 0.5, color=WHITE)
+        line = Line(start=pixel_grid1.get_top() + UP * 0.5, end=pixel_grid1_copy.get_top() + UP * 0.5, color=line_color)
         mse_text = Text("Mean Squared Error").scale(0.4).next_to(line, UP * 0.5)
 
-        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + DOWN * 0.5, color=WHITE)
-        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + DOWN * 0.5, color=WHITE)
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + DOWN * 0.5, color=line_color)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + DOWN * 0.5, color=line_color)
 
         # Combine the lines
         combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
@@ -688,8 +654,6 @@ class StageBTraining(MovingCameraScene):
         MovingCameraScene.setup(self)
 
     def construct(self):
-        encoder_input_color = WHITE
-        encoder_color = GREEN
 
         num_rows = 8
         table_data = [["a"] for _ in range(num_rows)]
@@ -752,7 +716,7 @@ class StageBTraining(MovingCameraScene):
         self.wait(2)
 
         pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT*4).set_opacity(0)
-        p1_p2_arrow = Arrow(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1).set_opacity(0)
+        p1_p2_arrow = Arrow2(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1).set_opacity(0)
         p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5).set_opacity(0)
 
 
@@ -817,16 +781,16 @@ class StageBTraining(MovingCameraScene):
         # Add all blocks to the scene
         self.play(FadeIn(down_blocks), FadeIn(up_blocks))
 
-        main_line = Line(start=up_blocks[0].get_bottom() + DOWN*0.5, end=down_blocks[0].get_bottom() + DOWN*0.5)
+        main_line = Line(start=up_blocks[0].get_bottom() + DOWN*0.5, end=down_blocks[0].get_bottom() + DOWN*0.5, color=line_color)
 
         # Create connecting lines
         connecting_lines = VGroup()
         for block in down_blocks:
-            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom())
+            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom(), color=line_color)
             connecting_lines.add(line)
 
         for block in up_blocks:
-            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom())
+            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom(), color=line_color)
             connecting_lines.add(line)
 
         # Add everything to the scene
@@ -874,9 +838,9 @@ class StageBTraining(MovingCameraScene):
 
         iris_image_copy.next_to(efficient_net_table, LEFT*2)
 
-        efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0))
+        efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0), color=line_color)
 
-        efficient_net_u_net_line2 = Line(start=efficient_net_u_net_line1.get_right(), end=(efficient_net_u_net_line1.get_right()[0], main_line.get_y(), 0))
+        efficient_net_u_net_line2 = Line(start=efficient_net_u_net_line1.get_right(), end=(efficient_net_u_net_line1.get_right()[0], main_line.get_y(), 0), color=line_color)
 
 
         iris_image_pixelated =  ImageMobject("resources/images/iris_pixelated.png")
@@ -1045,16 +1009,16 @@ class EverythingCombined(MovingCameraScene):
 
         self.wait(2)
 
-        main_convnext_line = Line(start=block_group[0].get_bottom() + DOWN * 0.5, end=block_group[num_copies].get_bottom() + DOWN * 0.5)
+        main_convnext_line = Line(start=block_group[0].get_bottom() + DOWN * 0.5, end=block_group[num_copies].get_bottom() + DOWN * 0.5, color=line_color)
 
         self.play(Create(main_convnext_line))
 
         convnext_attention_lines = []
         for block in block_group:
-            line = Line((block.get_bottom()[0], main_convnext_line.get_y(), 0), block.get_bottom()).add_tip(tip_width=0.1, tip_length=0.1)
+            line = Line((block.get_bottom()[0], main_convnext_line.get_y(), 0), block.get_bottom(), color=line_color).add_tip(tip_width=0.1, tip_length=0.1)
             convnext_attention_lines.append(line)
 
-        convnext_text_line = Line(start=main_convnext_line.get_center(), end=main_convnext_line.get_center() + DOWN*0.5)
+        convnext_text_line = Line(start=main_convnext_line.get_center(), end=main_convnext_line.get_center() + DOWN*0.5, color=line_color)
         self.play(*[Create(line) for line in convnext_attention_lines], Create(convnext_text_line))
 
         convnext_text = Paragraph("Textual Embedding", "e.g. Realistic Photo of Sausages on a Plate", alignment='center').scale(0.3).next_to(convnext_text_line, DOWN*0.25)
@@ -1146,7 +1110,7 @@ class EverythingCombined(MovingCameraScene):
         dashed_line_animations = []
         for block_left, block_right in zip(down_blocks, up_blocks):
             dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25,
-                                     buff=0.1).add_tip(tip_width=0.2, tip_length=0.2)
+                                     buff=0.1, color=line_color).add_tip(tip_width=0.2, tip_length=0.2)
             dashed_line_animations.append(Create(dashed_line))
             dashed_line_animations.append(Write(
                 Paragraph("concatenation", "(skip connection)", alignment='center').scale(0.3).next_to(dashed_line,
@@ -1156,13 +1120,13 @@ class EverythingCombined(MovingCameraScene):
 
         def create_block_to_block_line_down(block1, block2):
             line = Line(block1.get_bottom() + RIGHT * arrow_shift,
-                        (block1.get_bottom()[0], block2.get_center()[1], 0) + RIGHT * arrow_shift)
-            line2 = Line(line.get_bottom(), block2.get_left())
+                        (block1.get_bottom()[0], block2.get_center()[1], 0) + RIGHT * arrow_shift, color=line_color)
+            line2 = Line(line.get_bottom(), block2.get_left(), color=line_color)
             return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
 
         def create_block_to_block_line_up(block1, block2):
-            line = Line(block1.get_right(), (block2.get_bottom()[0], block1.get_right()[1], 0) + LEFT * arrow_shift)
-            line2 = Line(line.get_right(), block2.get_bottom() + LEFT * arrow_shift)
+            line = Line(block1.get_right(), (block2.get_bottom()[0], block1.get_right()[1], 0) + LEFT * arrow_shift, color=line_color)
+            line2 = Line(line.get_right(), block2.get_bottom() + LEFT * arrow_shift, color=line_color)
             return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
 
         down_lines = VGroup()
@@ -1248,10 +1212,10 @@ class EverythingCombined(MovingCameraScene):
 
         self.play(FadeIn(codebook), Write(codebook_text), Write(codebook_size))
 
-        vector1 = [[3.5], [7.4], [5.3], [0.8]]
-        vector2 = [[2.2], [5.4], [4.6], [5.2]]
-        vector3 = [[7.1], [1.4], [2.0], [0.2]]
-        vector4 = [[3.4], [2.8], [6.7], [2.3]]
+        vector1 = [[3.5], [7.4], [...], [0.8]]
+        vector2 = [[2.2], [5.4], [...], [5.2]]
+        vector3 = [[7.1], [1.4], [...], [0.2]]
+        vector4 = [[3.4], [2.8], [...], [2.3]]
 
         # Create the vectors using the Matrix class
         matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
@@ -1502,18 +1466,18 @@ class UNet(MovingCameraScene):
 
         dashed_line_animations = []
         for block_left, block_right in zip(down_blocks, up_blocks):
-            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1).add_tip(tip_width=0.2, tip_length=0.2)
+            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1).add_tip(tip_width=0.2, tip_length=0.2, color=line_color)
             dashed_line_animations.append(Create(dashed_line))
             dashed_line_animations.append(Write(Paragraph("concatenation","(skip connection)", alignment='center').scale(0.3).next_to(dashed_line, UP*0.25)))
 
         arrow_shift = 0.065
         def create_block_to_block_line_down(block1, block2):
-            line = Line(block1.get_bottom() + RIGHT*arrow_shift, (block1.get_bottom()[0], block2.get_center()[1], 0)+ RIGHT*arrow_shift)
-            line2 = Line(line.get_bottom(), block2.get_left())
+            line = Line(block1.get_bottom() + RIGHT*arrow_shift, (block1.get_bottom()[0], block2.get_center()[1], 0)+ RIGHT*arrow_shift, color=line_color)
+            line2 = Line(line.get_bottom(), block2.get_left(), color=line_color)
             return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
         def create_block_to_block_line_up(block1, block2):
-            line = Line(block1.get_right(), (block2.get_bottom()[0], block1.get_right()[1], 0) + LEFT*arrow_shift)
-            line2 = Line(line.get_right(), block2.get_bottom() + LEFT*arrow_shift)
+            line = Line(block1.get_right(), (block2.get_bottom()[0], block1.get_right()[1], 0) + LEFT*arrow_shift, color=line_color)
+            line2 = Line(line.get_right(), block2.get_bottom() + LEFT*arrow_shift, color=line_color)
             return VGroup(line, line2.add_tip(tip_width=0.1, tip_length=0.1))
 
         down_lines = VGroup()
@@ -1608,10 +1572,6 @@ class VQGANLimit(MovingCameraScene):
         MovingCameraScene.setup(self)
 
     def construct(self):
-        encoder_input_color = WHITE
-        decoder_output_color = WHITE
-        encoder_color = GREEN
-        decoder_color = YELLOW
 
         num_rows = 8
         table_data = [["a"] for _ in range(num_rows)]
