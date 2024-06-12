@@ -8,6 +8,7 @@ config.background_color = WHITE
 Tex.set_default(color=BLACK)
 MathTex.set_default(color=BLACK)
 Text.set_default(color=BLACK)
+Paragraph.set_default(color=BLACK)
 
 
 encoder_input_color = BLACK
@@ -512,7 +513,7 @@ class StageCTraining(MovingCameraScene):
 
         self.play(equation.animate.to_edge(UR))
 
-        diffusion_model = Rectangle(width=2, height=1, color=WHITE, fill_opacity=0).next_to(pixel_grid2, RIGHT *3)
+        diffusion_model = Rectangle(width=2, height=1, color=BLACK, fill_opacity=0).next_to(pixel_grid2, RIGHT *3)
         diffusion_model_text = Paragraph('Text-Conditional','Model', alignment='center').scale(0.35).move_to(diffusion_model.get_center())
         self.play(FadeIn(diffusion_model), Write(diffusion_model_text))
 
@@ -686,7 +687,7 @@ class StageBTraining(MovingCameraScene):
         image = ImageMobject("resources/images/iris.jpg")
         image.next_to(encoder_table, LEFT*2).scale(0.4)  # Adjust the scaling and position as needed
 
-        iris_image_copy = image.copy()
+        iris_image_copy = image.copy().scale(0.6)
 
         # Display the image
         self.play(FadeIn(image))
@@ -701,7 +702,7 @@ class StageBTraining(MovingCameraScene):
 
 
 
-        self.play(pixel_grid1.animate.next_to(encoder, RIGHT*4).scale(5))
+        self.play(pixel_grid1.animate.next_to(encoder, RIGHT*2.5).scale(5))
 
         noise_count = 3
         pixel_grids = [pixel_grid1.copy()]
@@ -739,7 +740,7 @@ class StageBTraining(MovingCameraScene):
 
         down_block1.add(block1, block2)
         down_block1.arrange(RIGHT, buff=0.1)
-        down_block1.next_to(pixel_grid2, RIGHT, buff=0.5)
+        down_block1.next_to(pixel_grid2, RIGHT, buff=0.2)
 
         def create_next_block_group(sign, block_group):
             new_block_group = VGroup()
@@ -797,9 +798,6 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-        efficient_net_color = BLUE
-        efficient_net_table_color = WHITE
-
         num_rows = 6
         table_data = [["a"] for _ in range(num_rows)]
 
@@ -832,7 +830,7 @@ class StageBTraining(MovingCameraScene):
 
         self.wait(2)
 
-        iris_image_copy.next_to(efficient_net_table, LEFT*2)
+        iris_image_copy.next_to(efficient_net_table, LEFT*1)
 
         efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0), color=line_color)
 
@@ -887,7 +885,7 @@ class StageBTraining(MovingCameraScene):
         self.wait(2)
 
         pixel_grids[0].move_to(unet.get_center()).set_opacity(0).scale(0.1)
-        self.play(pixel_grid2.animate.move_to(unet.get_center()).fade(1).scale(0), u_net_line_animations, FadeOut(iris_image_pixelated))
+        self.play(pixel_grid2.copy().animate.move_to(unet.get_center()).fade(1).scale(0), u_net_line_animations, FadeOut(iris_image_pixelated))
 
         iris_image_scale_animations = []
         for iris_image in iris_images:
@@ -1290,8 +1288,6 @@ class EverythingCombined(MovingCameraScene):
                 ImageMobject(image_sets[i][2]).scale(0.4),
                 ImageMobject(image_sets[i][3]).scale(0.5)
             ]
-            print("noised image count: " + str(i))
-            print("unnoised image count: " + str(i+1))
             unnoised_images = [
                 ImageMobject(image_sets[i + 1][0]).scale(0.3),
                 ImageMobject(image_sets[i + 1][1]).scale(0.3),
@@ -1394,7 +1390,7 @@ class EverythingCombined(MovingCameraScene):
 
         self.wait(2)
 
-        sausage_image = ImageMobject("resources/images/sausage.png").scale(0.25).next_to(decoder, RIGHT*2.25)
+        sausage_image = ImageMobject("resources/images/sausage.png").scale(0.5).next_to(decoder, RIGHT*3)
 
         self.play(FadeTransform(quantized_latent, sausage_image))
         self.play(decoder_group.animate.shift(LEFT*1.2), sausage_image.animate.shift(LEFT*1.2))
@@ -1489,7 +1485,7 @@ class UNet(MovingCameraScene):
 
         dashed_line_animations = []
         for block_left, block_right in zip(down_blocks, up_blocks):
-            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1).add_tip(tip_width=0.2, tip_length=0.2, color=line_color)
+            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1, color=line_color).add_tip(tip_width=0.2, tip_length=0.2)
             dashed_line_animations.append(Create(dashed_line))
             dashed_line_animations.append(Write(Paragraph("concatenation","(skip connection)", alignment='center').scale(0.3).next_to(dashed_line, UP*0.25)))
 
