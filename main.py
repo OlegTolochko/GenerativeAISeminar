@@ -1388,13 +1388,16 @@ class EverythingCombined(MovingCameraScene):
         decoder_table.get_columns().set_opacity(0)
         decoder_table.scale(0.25).next_to(decoder, RIGHT)
 
+        decoder_group = VGroup(decoder_table,decoder_text, decoder)
+
         self.play(FadeIn(decoder_table))
 
         self.wait(2)
 
         sausage_image = ImageMobject("resources/images/sausage.png").scale(0.25).next_to(decoder, RIGHT*2.25)
 
-        self.play(FadeTransform(quantized_latent, sausage_image), FadeOut(noised_unet_latent_text))
+        self.play(FadeTransform(quantized_latent, sausage_image))
+        self.play(decoder_group.animate.shift(LEFT*1.2), sausage_image.animate.shift(LEFT*1.2))
 
         self.wait(2)
 
