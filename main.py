@@ -17,6 +17,8 @@ z_color = BLUE
 vq_color = PURPLE
 codebook_color = BLUE_E
 decoder_color = RED_A
+efficient_net_color = BLUE
+efficient_net_table_color = BLACK
 
 line_color = BLACK
 
@@ -412,15 +414,9 @@ class StageCTraining(MovingCameraScene):
     def setup(self):
         MovingCameraScene.setup(self)
     def construct(self):
-        efficient_net_color = BLUE
-        efficient_net_table_color = WHITE
-
 
         num_rows = 6
         table_data = [["a"] for _ in range(num_rows)]
-
-        # Add the watermark to the background
-        #self.add(addWatermark())
 
         # Create the table
         efficient_net_table = Table(
@@ -452,7 +448,7 @@ class StageCTraining(MovingCameraScene):
 
         self.wait(2)
 
-        database_image = SVGMobject("resources/images/database-solid.svg")
+        database_image = SVGMobject("resources/images/noun-database-6839994.svg")
         database_image.scale(0.4).shift(LEFT * 5.5)  # Adjust the scaling and position as needed
 
         # Display the image
@@ -699,7 +695,7 @@ class StageBTraining(MovingCameraScene):
         self.play(image.animate.move_to(encoder.get_center()).scale(0))
         self.remove(image)
 
-        rows, cols, cell_size = 8, 8, 1
+        rows, cols, cell_size = 16, 16, 1
         pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.015)
         pixel_grid1.move_to(encoder.get_center())
 
@@ -1040,11 +1036,11 @@ class EverythingCombined(MovingCameraScene):
 
         #move camera to the right
 
-        stage_c_rectangle = Rectangle(width=8, height=3.5, color=WHITE, fill_opacity=0).move_to(block_group.get_center()+ DOWN*0.75)
+        stage_c_rectangle = Rectangle(width=8, height=3.5, color=BLACK, fill_opacity=0).move_to(block_group.get_center()+ DOWN*0.75)
         stage_c_text = Text("Stage C").next_to(stage_c_rectangle, UP*0.5).shift(LEFT*2)
         self.play(FadeIn(stage_c_rectangle), Write(stage_c_text))
         self.camera.frame.save_state()
-        self.play(self.camera.frame.animate.move_to(pixel_grids[0].get_center() + UP*2.5 + RIGHT*2).set(width=20), legend.animate.shift(UP*1))
+        self.play(self.camera.frame.animate.move_to(pixel_grids[0].get_center() + UP*2.5 + RIGHT*2).set(width=22), legend.animate.shift(UP*1))
         self.wait(2)
 
         block_width = 0.25
@@ -1212,21 +1208,23 @@ class EverythingCombined(MovingCameraScene):
 
         self.play(FadeIn(codebook), Write(codebook_text), Write(codebook_size))
 
-        vector1 = [[3.5], [7.4], [...], [0.8]]
-        vector2 = [[2.2], [5.4], [...], [5.2]]
-        vector3 = [[7.1], [1.4], [...], [0.2]]
-        vector4 = [[3.4], [2.8], [...], [2.3]]
+        vector1 = [[3.5], [7.4], ["..."], [0.8]]
+        vector2 = [[2.2], [5.4], ["..."], [5.2]]
+        vector3 = [[7.1], [1.4], ["..."], [0.2]]
+        vector4 = [[3.4], [2.8], ["..."], [2.3]]
 
         # Create the vectors using the Matrix class
-        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
+        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
 
         # Arrange the vectors next to each other
         vectors = VGroup(matrix1, matrix2, matrix3, matrix4).arrange(RIGHT, buff=0.2).scale(0.7)
 
         vectors.move_to(codebook.get_center())
+
+        codebook_group = VGroup(vectors, codebook, codebook_text)
 
         self.wait(2)
 
@@ -1339,20 +1337,42 @@ class EverythingCombined(MovingCameraScene):
 
         self.wait(2)
 
-        stage_b_rectangle = Rectangle(width=11.25, height=7, color=WHITE, fill_opacity=0).move_to(VGroup(up_blocks, down_blocks).get_center() + DOWN*0.7 + LEFT*0.3)
+        stage_b_rectangle = Rectangle(width=11.25, height=7, color=BLACK, fill_opacity=0).move_to(VGroup(up_blocks, down_blocks).get_center() + DOWN*0.7 + LEFT*0.3)
+        stage_b_rectangle_quantized = Rectangle(width=9.75, height=7, color=BLACK, fill_opacity=0).move_to(VGroup(up_blocks, down_blocks).get_center() + DOWN*0.7 + LEFT*0.8)
         stage_b_text = Text("Stage B").next_to(stage_b_rectangle, UP*0.5).shift(LEFT*3)
         self.play(FadeIn(stage_b_rectangle), Write(stage_b_text))
 
         self.wait(2)
 
-        decoder_output_color = WHITE
-        decoder_color = YELLOW
+        vq = Rectangle(width=2, height=1, color=vq_color, fill_opacity=0)
+        vq_text = Paragraph('Vector', 'Quantization', alignment='center').scale(0.45).move_to(vq.get_center())
+
+        vq_group = VGroup(vq, vq_text)
+        vq_group.next_to(unnoised_latent, RIGHT*3)
+
+        self.play(FadeIn(vq), Write(vq_text))
+
+        self.wait(2)
+
+        codebook_group_copy = codebook_group.copy()
+        codebook_group_copy.next_to(vq_group, DOWN*3)
+
+        self.play(FadeIn(codebook_group_copy))
+
+        quantized_latent = ImageMobject("resources/images/pixelated/48x48pixelated.png").scale(0.3)
+
+        quantized_latent.next_to(vq_group, RIGHT*1)
+
+        self.play(FadeTransform(unnoised_latent, quantized_latent), FadeOut(noised_unet_latent_text))
+        self.play(vq_group.animate.shift(LEFT*1.25), codebook_group_copy.animate.shift(LEFT*1.25), quantized_latent.animate.shift(LEFT*1.25), FadeTransform(stage_b_rectangle, stage_b_rectangle_quantized))
+
+        self.wait(2)
 
         num_rows = 8
         decoder = Polygon(
             [3, -0.5, 0], [4.5, -1.5, 0], [4.5, 1.5, 0], [3, 0.5, 0],
             color=decoder_color, fill_opacity=0
-        ).next_to(unnoised_latent, RIGHT*3)
+        ).next_to(quantized_latent, RIGHT*1)
         decoder_text = Paragraph("VQGAN", "Decoder", alignment='center').scale(0.5).move_to(decoder.get_center())
         self.play(FadeIn(decoder), Write(decoder_text))
 
@@ -1374,7 +1394,7 @@ class EverythingCombined(MovingCameraScene):
 
         sausage_image = ImageMobject("resources/images/sausage.png").scale(0.25).next_to(decoder, RIGHT*2.25)
 
-        self.play(FadeTransform(unnoised_latent, sausage_image), FadeOut(noised_unet_latent_text))
+        self.play(FadeTransform(quantized_latent, sausage_image), FadeOut(noised_unet_latent_text))
 
         self.wait(2)
 
