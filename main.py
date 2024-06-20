@@ -168,10 +168,10 @@ class VQGANStructure(Scene):
         self.play(image.animate.move_to(z.get_center()).scale(0))
         self.remove(image)
 
-        vector_values = [[3.3], [7.5], [5.3], [1.3]]
+        vector_values = [[3.3], [7.5], ["..."], [1.3]]
 
         # Create the vector using the Matrix class
-        z_vector = Matrix(vector_values, v_buff=0.5, bracket_h_buff=0.2)
+        z_vector = Matrix(vector_values, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN)
         z_vector.scale(0.5)
         z_vector.move_to(z.get_center())
         encoder_z_arrow = Arrow(encoder.get_right(), z_vector.get_left(), buff=0.1)
@@ -198,16 +198,16 @@ class VQGANStructure(Scene):
         )
 
         # Define the 4 vectors with arbitrary values
-        vector1 = [[3.5], [7.4], ["5.3"], [0.8]]
-        vector2 = [[2.2], [5.4], ["4.6"], [5.2]]
-        vector3 = [[7.1], [1.4], ["2.0"], [0.2]]
-        vector4 = [[3.4], [2.8], ["6.7"], [2.3]]
+        vector1 = [[3.5], [7.4], ["..."], [0.8]]
+        vector2 = [[2.2], [5.4], ["..."], [5.2]]
+        vector3 = [[7.1], [1.4], ["..."], [0.2]]
+        vector4 = [[3.4], [2.8], ["..."], [2.3]]
 
         # Create the vectors using the Matrix class
-        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
-        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2).scale(0.5)
+        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
 
         # Arrange the vectors next to each other
         vectors = VGroup(matrix1, matrix2, matrix3, matrix4).arrange(RIGHT, buff=0.2)
@@ -343,15 +343,9 @@ class VQGANStructure(Scene):
         ).scale(0.4)
         latent_representation_copy = latent_representation.copy()
         codebook_size = Text("8,192 Vectors").scale(0.35)
-        matrix1.mob_matrix[2] = "..."
-        matrix2.mob_matrix[2] = "..."
-        matrix3.mob_matrix[2] = "..."
-        matrix4.mob_matrix[2] = "..."
-        z_vector.mob_matrix[2] = "..."
-        matrix1_copy.mob_matrix[2] = "..."
 
-        pixel_representation.next_to(encoder_table, DOWN)
-        pixel_representation_copy.next_to(decoder_table, DOWN)
+        pixel_representation.next_to(image_iris1_copy, DOWN)
+        pixel_representation_copy.next_to(image_iris2_copy, DOWN)
 
         latent_representation.next_to(z_text, DOWN)
         latent_representation_copy.next_to(z_quant_text, DOWN)
@@ -359,17 +353,16 @@ class VQGANStructure(Scene):
         codebook_size.next_to(codebook, DOWN*0.5)
 
         self.play(Write(pixel_representation), Write(pixel_representation_copy))
-        self.wait(2)
+        self.wait(4)
 
-        self.play(Write(latent_representation), Write(latent_representation_copy))
-        self.wait(2)
+        pixelated_latent = ImageMobject("resources/images/pixelated/48x48pixelated.png").scale(0.25).move_to(matrix1_copy.get_center())
+        pixelated_latent_vq = pixelated_latent.copy().move_to(z_vector.get_center())
+        self.play(Write(latent_representation), Write(latent_representation_copy), FadeOut(z_vector, matrix1_copy, matrix1_decoder_arrow, z_vq_arrow,vq_z_quant_arrow), FadeIn(pixelated_latent_vq, pixelated_latent) )
+        self.wait(4)
 
         self.play(Write(codebook_size))
         self.wait(2)
 
-
-
-import random
 
 from manim import *
 import random
@@ -480,13 +473,16 @@ class StageCTraining(MovingCameraScene):
         self.add(pixel_grid1)
 
         pixel_grid1_dummy = pixel_grid1.copy().scale(4).next_to(efficient_net, RIGHT*3).set_opacity(0)
+        pixel_grid1_text = MathTex(r"24 \times 24 \times 16").scale(0.3).next_to(pixel_grid1_dummy, DOWN)
 
         efficient_net_pixel_grid1_arrow = Arrow2(efficient_net.get_right(), pixel_grid1_dummy.get_left(), buff=0.1)
 
-        self.play(pixel_grid1.animate.scale(4).next_to(efficient_net, RIGHT*3), GrowArrow(efficient_net_pixel_grid1_arrow))
+        self.play(pixel_grid1.animate.scale(4).next_to(efficient_net, RIGHT*3), GrowArrow(efficient_net_pixel_grid1_arrow), Write(pixel_grid1_text))
 
         pixel_grid2.scale(0.2)
         pixel_grid2.next_to(pixel_grid1, RIGHT * 3)
+
+        pixel_grid2_text = MathTex(r"24 \times 24 \times 16").scale(0.3).next_to(pixel_grid2, DOWN)
 
         self.wait(2)
         pixel_grid1_pixel_grid2_arrow = Arrow2(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1)
@@ -496,7 +492,7 @@ class StageCTraining(MovingCameraScene):
 
 
 
-        self.play(GrowArrow(pixel_grid1_pixel_grid2_arrow), Write(p1_p2_arrow_text))
+        self.play(GrowArrow(pixel_grid1_pixel_grid2_arrow), Write(p1_p2_arrow_text), Write(pixel_grid2_text))
 
         self.play(FadeIn(pixel_grid2))
 
@@ -532,9 +528,11 @@ class StageCTraining(MovingCameraScene):
         pixel_grid1_copy_dummy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25).set_opacity(0)
         pixel_grid1_copy_dummy.next_to(diffusion_model, RIGHT*4).scale(4)
 
+        pixel_grid1_copy_text = MathTex(r"24 \times 24 \times 16").scale(0.3).next_to(pixel_grid1_copy_dummy, DOWN)
+
         pixel_grid1_copy = pixel_grid1.copy().move_to(diffusion_model.get_center()).scale(0.25)
         diffusion_model_p1c_arrow = Arrow2(diffusion_model.get_right(), pixel_grid1_copy_dummy.get_left(), buff=0.1)
-        self.play(pixel_grid1_copy.animate.next_to(diffusion_model, RIGHT*4).scale(4), GrowArrow(diffusion_model_p1c_arrow))
+        self.play(pixel_grid1_copy.animate.next_to(diffusion_model, RIGHT*4).scale(4), GrowArrow(diffusion_model_p1c_arrow), Write(pixel_grid1_copy_text))
 
         self.wait(2)
 
@@ -609,9 +607,9 @@ class StageCTraining(MovingCameraScene):
         example_setup.scale(0.2).move_to(diffusion_model.get_center())
 
         self.play(FadeIn(example_blocks))
-        self.play(Write(residual_label))
-        self.play(Write(attention_label))
-        self.play(Write(timestep_label))
+        self.play(FadeIn(residual_label))
+        self.play(FadeIn(attention_label))
+        self.play(FadeIn(timestep_label))
 
         self.wait(2)
 
@@ -687,40 +685,112 @@ class StageBTraining(MovingCameraScene):
         image = ImageMobject("resources/images/iris.jpg")
         image.next_to(encoder_table, LEFT*2).scale(0.4)  # Adjust the scaling and position as needed
 
-        iris_image_copy = image.copy().scale(0.6)
+        text_scale_factor = 0.30
+        text_down_shift = 0.75
+        iris_image_size = MathTex(r"1024 \times 1024 \times 3").scale(text_scale_factor*1/0.8).next_to(image, DOWN*text_down_shift)
+
+        iris_image_copy = image.copy().scale(0.7)
 
         # Display the image
-        self.play(FadeIn(image))
+        self.play(FadeIn(image), Write(iris_image_size))
+        self.wait(1)
 
         # Move the image to the middle of the table and shrink it
-        self.play(image.animate.move_to(encoder.get_center()).scale(0))
-        self.remove(image)
+        self.play(image.animate.move_to(encoder.get_center()).scale(0), FadeOut(iris_image_size))
+        self.remove(image, iris_image_size)
 
         rows, cols, cell_size = 16, 16, 1
         pixel_grid1 = PixelGrid(rows=rows, cols=cols, cell_size=cell_size).scale(0.015)
         pixel_grid1.move_to(encoder.get_center())
 
-
-
         self.play(pixel_grid1.animate.next_to(encoder, RIGHT*2.5).scale(5))
+        pixel_grid1_text = MathTex(r"256 \times 256 \times 4").scale(text_scale_factor*1/0.8).next_to(pixel_grid1, DOWN * text_down_shift)
+        self.play(Write(pixel_grid1_text))
+
+        self.wait(2)
+
+        vqgan_noise_group = VGroup(pixel_grid1, encoder, encoder_text,
+                                   encoder_table, pixel_grid1_text)
+        self.play(vqgan_noise_group.animate.shift(UP * 1, LEFT * 3.66).scale(0.8))
+
+        self.wait(2)
+
+        num_rows = 6
+        table_data = [["a"] for _ in range(num_rows)]
+
+        scale_factor_efficient_net = 0.175
+
+        # Create the table
+        efficient_net_table = Table(
+            table_data,
+            include_outer_lines=True,
+            line_config={"color": efficient_net_table_color},
+            v_buff=1.3
+        ).move_to(encoder_table.get_center() + DOWN*3.5)
+        efficient_net_table.get_columns().set_opacity(0)
+        efficient_net_table.scale(scale_factor_efficient_net)
+
+        # Fade in the table
+        self.play(FadeIn(efficient_net_table))
+
+        self.wait(2)
+
+        # Encoder
+        efficient_net = Polygon(
+            [-3.5, -1.25, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.25, 0],
+            color=efficient_net_color, fill_opacity=0
+        ).scale(scale_factor_efficient_net/0.25).next_to(efficient_net_table, RIGHT*(scale_factor_efficient_net/0.25))
+        efficient_net_text = Text("EfficientNet").scale(0.4*(scale_factor_efficient_net/0.25)).move_to(efficient_net.get_center())
+        self.play(FadeIn(efficient_net), Write(efficient_net_text))
+
+        efficient_net_group = VGroup(efficient_net_text, efficient_net, efficient_net_table)
+
+        self.wait(2)
+
+        iris_image_pixelated = ImageMobject("resources/images/iris_pixelated.png")
+        iris_image_copy.next_to(efficient_net_table, LEFT * 0.8)
+
+        iris_image_copy_text = MathTex(r"1024 \times 1024 \times 3").scale(text_scale_factor).next_to(iris_image_copy, DOWN * text_down_shift)
+
+
+        self.play(FadeIn(iris_image_copy), Write(iris_image_copy_text))
+        iris_image_copy_copy = iris_image_copy.copy().scale(0.75)
+        iris_image_copy_copy_text = MathTex(r"768 \times 768 \times 3").scale(text_scale_factor).next_to(iris_image_copy, DOWN * text_down_shift)
+
+        self.wait(2)
+        self.play(FadeTransform(iris_image_copy, iris_image_copy_copy), FadeTransform(iris_image_copy_text, iris_image_copy_copy_text))
+
+        self.wait(2)
+
+        self.play(iris_image_copy_copy.animate.move_to(efficient_net.get_center()).scale(0), FadeOut(iris_image_copy_copy_text))
+
+        iris_image_pixelated.move_to(efficient_net.get_center()).scale(0.05).set_opacity(0)
+        self.play(iris_image_pixelated.animate.next_to(efficient_net, RIGHT * 1.5).scale(3).set_opacity(1))
+
+        iris_image_pixelated_text = MathTex(r"24 \times 24 \times 16").scale(text_scale_factor).next_to(iris_image_pixelated, DOWN * text_down_shift)
+
+        self.play(Write(iris_image_pixelated_text))
 
         noise_count = 3
         pixel_grids = [pixel_grid1.copy()]
         for i in range(noise_count):
-            colors_with_noise = [[PixelGrid.blend_with_noise(color, blend_factor=0.35) for color in row] for row in pixel_grids[i].colors]
-            pixel_grids.append(PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.075))
+            colors_with_noise = [[PixelGrid.blend_with_noise(color, blend_factor=0.35) for color in row] for row in
+                                 pixel_grids[i].colors]
+            pixel_grids.append(
+                PixelGrid(rows=rows, cols=cols, cell_size=cell_size, colors=colors_with_noise).scale(0.075))
 
         self.wait(2)
 
-        pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT*4).set_opacity(0)
+        pixel_grid2 = pixel_grids[noise_count].next_to(pixel_grid1, RIGHT * 4).set_opacity(0).scale(0.8)
         p1_p2_arrow = Arrow2(pixel_grid1.get_right(), pixel_grid2.get_left(), buff=0.1).set_opacity(0)
-        p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP*0.5).set_opacity(0)
+        p1_p2_arrow_text = Text("Noise").scale(0.3).next_to(p1_p2_arrow, UP * 0.5).set_opacity(0)
+        p1_p2_arrow.set_opacity(1)
+        p1_p2_arrow_text.set_opacity(1)
+        pixel_grid2.set_opacity(1)
 
-
-        self.wait(2)
-
-        vqgan_noise_group = VGroup(pixel_grid1, pixel_grid2, p1_p2_arrow, p1_p2_arrow_text, encoder, encoder_text, encoder_table)
-        self.play(vqgan_noise_group.animate.shift(UP*1, LEFT*4).scale(0.8))
+        pixel_grid2_text = MathTex(r"256 \times 256 \times 4").scale(text_scale_factor).next_to(pixel_grid2,
+                                                                                                DOWN * text_down_shift)
+        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text), Write(pixel_grid2_text))
 
         self.wait(2)
 
@@ -778,74 +848,29 @@ class StageBTraining(MovingCameraScene):
         # Add all blocks to the scene
         self.play(FadeIn(down_blocks), FadeIn(up_blocks))
 
-        main_line = Line(start=up_blocks[0].get_bottom() + DOWN*0.5, end=down_blocks[0].get_bottom() + DOWN*0.5, color=line_color)
+        main_line = Line(start=up_blocks[0].get_bottom() + DOWN * 0.5, end=down_blocks[0].get_bottom() + DOWN * 0.5,
+                         color=line_color)
 
         # Create connecting lines
         connecting_lines = VGroup()
         for block in down_blocks:
-            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom(), color=line_color)
+            line = Line((block.get_x(), main_line.get_y(), 0), block.get_bottom(), color=line_color)
             connecting_lines.add(line)
 
         for block in up_blocks:
-            line = Line((block.get_x(),main_line.get_y(), 0), block.get_bottom(), color=line_color)
+            line = Line((block.get_x(), main_line.get_y(), 0), block.get_bottom(), color=line_color)
             connecting_lines.add(line)
 
         # Add everything to the scene
-        self.add(down_blocks, up_blocks, main_line, connecting_lines)
+        self.play(FadeIn(main_line, connecting_lines))
 
         unet = VGroup(down_blocks, up_blocks)
 
-
         self.wait(2)
-
-        num_rows = 6
-        table_data = [["a"] for _ in range(num_rows)]
-
-        scale_factor_efficient_net = 0.175
-
-        # Create the table
-        efficient_net_table = Table(
-            table_data,
-            include_outer_lines=True,
-            line_config={"color": efficient_net_table_color},
-            v_buff=1.3
-        ).move_to(encoder_table.get_center() + DOWN*3.5)
-        efficient_net_table.get_columns().set_opacity(0)
-        efficient_net_table.scale(scale_factor_efficient_net)
-
-        # Fade in the table
-        self.play(FadeIn(efficient_net_table))
-
-        self.wait(2)
-
-        # Encoder
-        efficient_net = Polygon(
-            [-3.5, -1.25, 0], [-2, -0.5, 0], [-2, 0.5, 0], [-3.5, 1.25, 0],
-            color=efficient_net_color, fill_opacity=0
-        ).scale(scale_factor_efficient_net/0.25).next_to(efficient_net_table, RIGHT*(scale_factor_efficient_net/0.25))
-        efficient_net_text = Text("EfficientNet").scale(0.4*(scale_factor_efficient_net/0.25)).move_to(efficient_net.get_center())
-        self.play(FadeIn(efficient_net), Write(efficient_net_text))
-
-        efficient_net_group = VGroup(efficient_net_text, efficient_net, efficient_net_table)
-
-        self.wait(2)
-
-        iris_image_copy.next_to(efficient_net_table, LEFT*1)
 
         efficient_net_u_net_line1 = Line(start=efficient_net.get_right(), end=(main_line.get_center()[0], efficient_net.get_y(), 0), color=line_color)
 
         efficient_net_u_net_line2 = Line(start=efficient_net_u_net_line1.get_right(), end=(efficient_net_u_net_line1.get_right()[0], main_line.get_y(), 0), color=line_color)
-
-
-        iris_image_pixelated =  ImageMobject("resources/images/iris_pixelated.png")
-
-        self.play(FadeIn(iris_image_copy))
-        self.play(iris_image_copy.animate.move_to(efficient_net.get_center()).scale(0))
-
-        iris_image_pixelated.move_to(efficient_net.get_center()).scale(0.05).set_opacity(0)
-        self.play(iris_image_pixelated.animate.next_to(efficient_net, RIGHT*1.5).scale(3).set_opacity(1))
-
-        self.wait(2)
 
         self.play(FadeIn(efficient_net_u_net_line1, efficient_net_u_net_line2))
 
@@ -858,13 +883,7 @@ class StageBTraining(MovingCameraScene):
             efficient_net_u_net_line2.get_end()
         ])
 
-        #noise latent
-        p1_p2_arrow.set_opacity(1)
-        p1_p2_arrow_text.set_opacity(1)
-        pixel_grid2.set_opacity(1)
-        self.play(GrowArrow(p1_p2_arrow), FadeIn(pixel_grid2), Write(p1_p2_arrow_text))
-
-        self.play(MoveAlongPath(iris_image_pixelated, path, run_time=4))
+        self.play(MoveAlongPath(iris_image_pixelated, path, run_time=4), FadeOut(iris_image_pixelated_text))
 
         self.wait(2)
 
@@ -893,7 +912,24 @@ class StageBTraining(MovingCameraScene):
 
         # Animate pixel_grid_denoised appearing from the last up block
         self.play(pixel_grids[0].animate.move_to(up_blocks[0].get_center() + RIGHT).set_opacity(
-            1).scale(10 * 0.8), iris_image_scale_animations)
+            1).scale(10), iris_image_scale_animations)
+
+        pixel_grid_unnoised_text = MathTex(r"256 \times 256 \times 4").scale(text_scale_factor).next_to(pixel_grids[0],
+                                                                                                        DOWN * text_down_shift)
+        self.play(Write(pixel_grid_unnoised_text))
+
+        self.wait(2)
+
+        line = Line(start=pixel_grid1.get_top() + UP * 1.5, end=pixel_grids[0].get_top() + UP * 1.5,
+                    color=line_color)
+        loss_text = Text("Reconstruction Loss").scale(0.4).next_to(line, UP * 0.5)
+
+        line_left_vertical = Line(start=line.get_start(), end=line.get_start() + DOWN * 1.5, color=line_color)
+        line_right_vertical = Line(start=line.get_end(), end=line.get_end() + DOWN * 1.5, color=line_color)
+
+        combined_lines = VGroup(line, line_left_vertical, line_right_vertical)
+
+        self.play(FadeIn(combined_lines), Write(loss_text))
 
         self.wait(2)
 
@@ -997,7 +1033,7 @@ class EverythingCombined(MovingCameraScene):
 
         pixel_grids[noise_count].next_to(block_group, LEFT, buff=0.5)
 
-        noised24x24_latent_text = MathTex(r"16 \times 24 \times 24").scale(0.3).next_to(pixel_grids[noise_count], DOWN)
+        noised24x24_latent_text = MathTex(r"24 \times 24 \times 16").scale(0.3).next_to(pixel_grids[noise_count], DOWN)
 
         self.play(FadeIn(pixel_grids[noise_count]), Write(noised24x24_latent_text))
 
@@ -1136,7 +1172,47 @@ class EverythingCombined(MovingCameraScene):
         self.play(FadeIn(down_lines), FadeIn(up_lines))
         self.wait(2)
 
-        self.play(*dashed_line_animations)
+        codebook = Rectangle(width=2.5, height=1, color=PURPLE, fill_opacity=0).next_to(down_block1, LEFT * 8).shift(
+            DOWN * 3)
+        codebook_text = Text("Codebook").scale(0.5).next_to(codebook, UP * 0.5)
+        codebook_size = Text("8,192 Vectors").scale(0.35).next_to(codebook, DOWN * 0.5)
+
+        vector1 = [[3.5], [7.4], ["..."], [0.8]]
+        vector2 = [[2.2], [5.4], ["..."], [5.2]]
+        vector3 = [[7.1], [1.4], ["..."], [0.2]]
+        vector4 = [[3.4], [2.8], ["..."], [2.3]]
+
+        # Create the vectors using the Matrix class
+        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
+
+        # Arrange the vectors next to each other
+        vectors = VGroup(matrix1, matrix2, matrix3, matrix4).arrange(RIGHT, buff=0.2).scale(0.7)
+
+        vectors.move_to(codebook.get_center())
+
+        codebook_group = VGroup(vectors, codebook, codebook_text)
+
+        self.play(FadeIn(vectors), FadeIn(codebook), Write(codebook_text), Write(codebook_size))
+
+        self.wait(2)
+        image_shift_factor = 0.5
+
+        noised_image1 = ImageMobject("resources/images/pixelated/noised/48x48pixelated_noised_3.png").scale(
+            0.3).next_to(down_block1, LEFT * image_shift_factor)
+        noised_unet_latent_text = MathTex(r"256 \times 256 \times 4").scale(0.35).next_to(noised_image1, DOWN * 0.5)
+
+        self.play(FadeIn(noised_image1), Write(noised_unet_latent_text))
+        self.wait(2)
+
+        for i in range(10):
+            random_int = random.randint(0, 3)
+            vector_copy = vectors[random_int].copy()
+
+            self.play(vector_copy.animate.move_to(noised_image1.get_center()).scale(0), run_time=0.5)
+
         self.wait(2)
 
         timestep_lines = VGroup()
@@ -1153,7 +1229,6 @@ class EverythingCombined(MovingCameraScene):
 
         timestep_text = Paragraph("Timestep", "Embedding", alignment='center').scale(0.3).next_to(main_timestep_line,
                                                                                                   LEFT * 0.5)
-        self.play(Create(main_timestep_line), Write(timestep_text))
 
         for block_left, block_right in zip(down_blocks, up_blocks):
             timestep_lines.add(Line(start=(block_left[0].get_bottom()[0], main_timestep_line.get_y(), 0),
@@ -1171,9 +1246,6 @@ class EverythingCombined(MovingCameraScene):
             Line(start=(middle_block[2].get_bottom()[0], main_timestep_line.get_y(), 0),
                  end=middle_block[2].get_bottom(),
                  color=timestep_color).add_tip(tip_width=0.1, tip_length=0.1))
-
-        self.play(FadeIn(timestep_lines))
-        self.wait(2)
 
         embedding_lines = VGroup()
 
@@ -1195,43 +1267,10 @@ class EverythingCombined(MovingCameraScene):
                  end=middle_block[1].get_bottom(),
                  color=PURPLE).add_tip(tip_width=0.1, tip_length=0.1))
 
-        self.play(Create(main_embedding_line))
-        self.play(FadeIn(embedding_lines))
+        self.play(Create(main_timestep_line), Write(timestep_text), Create(main_embedding_line))
+        self.play(FadeIn(timestep_lines), FadeIn(embedding_lines), *dashed_line_animations)
 
-        self.wait(2)
-
-        codebook = Rectangle(width=2.5, height=1, color=PURPLE, fill_opacity=0).next_to(down_block1, LEFT*8).shift(DOWN*3)
-        codebook_text = Text("Codebook").scale(0.5).next_to(codebook, UP*0.5)
-        codebook_size = Text("8,192 Vectors").scale(0.35).next_to(codebook, DOWN*0.5)
-
-        self.play(FadeIn(codebook), Write(codebook_text), Write(codebook_size))
-
-        vector1 = [[3.5], [7.4], ["..."], [0.8]]
-        vector2 = [[2.2], [5.4], ["..."], [5.2]]
-        vector3 = [[7.1], [1.4], ["..."], [0.2]]
-        vector4 = [[3.4], [2.8], ["..."], [2.3]]
-
-        # Create the vectors using the Matrix class
-        matrix1 = Matrix(vector1, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
-        matrix2 = Matrix(vector2, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
-        matrix3 = Matrix(vector3, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
-        matrix4 = Matrix(vector4, v_buff=0.5, bracket_h_buff=0.2, element_alignment_corner=ORIGIN).scale(0.5)
-
-        # Arrange the vectors next to each other
-        vectors = VGroup(matrix1, matrix2, matrix3, matrix4).arrange(RIGHT, buff=0.2).scale(0.7)
-
-        vectors.move_to(codebook.get_center())
-
-        codebook_group = VGroup(vectors, codebook, codebook_text)
-
-        self.wait(2)
-
-        self.play(FadeIn(vectors))
-
-        self.wait(2)
-
-        image_shift_factor = 0.5
-
+        self.wait(1)
 
         # Define the sets of noised and unnoised images
         image_sets = [
@@ -1265,21 +1304,9 @@ class EverythingCombined(MovingCameraScene):
         unnoised_positions = [RIGHT * image_shift_factor, RIGHT * image_shift_factor, RIGHT * image_shift_factor,
                               RIGHT * image_shift_factor]
 
-        noised_image1 = ImageMobject("resources/images/pixelated/noised/48x48pixelated_noised_3.png").scale(0.3).next_to(down_block1, LEFT*image_shift_factor)
-        noised_unet_latent_text = MathTex(r"4 \times 256 \times 256").scale(0.35).next_to(noised_image1, DOWN*0.5)
-
-        self.play(FadeIn(noised_image1), Write(noised_unet_latent_text))
-        self.wait(2)
-
-        for i in range(10):
-            random_int = random.randint(0, 3)
-            vector_copy = vectors[random_int].copy()
-
-            self.play(vector_copy.animate.move_to(noised_image1.get_center()).scale(0), run_time=0.5)
 
         self.wait(2)
         self.play(FadeOut(noised_unet_latent_text), FadeOut(vectors), FadeOut(codebook), FadeOut(codebook_text), FadeOut(codebook_size))
-        self.remove(noised_image1)
 
         for i in range(3):
             noised_images = [
@@ -1312,14 +1339,17 @@ class EverythingCombined(MovingCameraScene):
 
             # Cycle through transformations
             self.add(noised_images[0])
-            for i in range(3):
-                self.play(FadeTransform(noised_images[i], noised_images[i + 1]), run_time=0.5)
+            if i == 0:
+                self.remove(noised_image1)
+
+            for j in range(3):
+                self.play(FadeTransform(noised_images[j], noised_images[j + 1]), run_time=0.5)
 
             self.play(FadeTransform(noised_images[3], unnoised_images[3]), run_time=0.5)
 
             # Transform to the unnoised images in reverse order
-            for i in range(3):
-                self.play(FadeTransform(unnoised_images[3-i], unnoised_images[3-i-1]), run_time=0.5)
+            for j in range(3):
+                self.play(FadeTransform(unnoised_images[3-j], unnoised_images[3-j-1]), run_time=0.5)
 
             self.remove(unnoised_images[0])
 
@@ -1360,7 +1390,7 @@ class EverythingCombined(MovingCameraScene):
         quantized_latent.next_to(vq_group, RIGHT*1)
 
         self.play(FadeTransform(unnoised_latent, quantized_latent), FadeOut(noised_unet_latent_text))
-        self.play(vq_group.animate.shift(LEFT*1.25), codebook_group_copy.animate.shift(LEFT*1.25), quantized_latent.animate.shift(LEFT*1.25), FadeTransform(stage_b_rectangle, stage_b_rectangle_quantized))
+        self.play(vq_group.animate.shift(LEFT*1.1), codebook_group_copy.animate.shift(LEFT*1.1), quantized_latent.animate.shift(LEFT*1.1), FadeTransform(stage_b_rectangle, stage_b_rectangle_quantized))
 
         self.wait(2)
 
@@ -1390,10 +1420,19 @@ class EverythingCombined(MovingCameraScene):
 
         self.wait(2)
 
-        sausage_image = ImageMobject("resources/images/sausage.png").scale(0.5).next_to(decoder, RIGHT*3)
+        sausage_image = ImageMobject("resources/images/sausage.png").scale(0.5).next_to(decoder, RIGHT*4.5)
 
         self.play(FadeTransform(quantized_latent, sausage_image))
         self.play(decoder_group.animate.shift(LEFT*1.2), sausage_image.animate.shift(LEFT*1.2))
+
+        self.wait(2)
+
+        stage_a_group = VGroup(decoder_group, vq_group, codebook_group_copy)
+
+        stage_c_rectangle = Rectangle(width=5.15, height=4.6, color=BLACK, fill_opacity=0).move_to(stage_a_group.get_center())
+        stage_c_text = Text("Stage A").next_to(stage_c_rectangle, UP*0.5).shift(LEFT*0.5)
+
+        self.play(FadeIn(stage_c_rectangle), Write(stage_c_text))
 
         self.wait(2)
 
@@ -1483,12 +1522,6 @@ class UNet(MovingCameraScene):
 
         self.wait(2)
 
-        dashed_line_animations = []
-        for block_left, block_right in zip(down_blocks, up_blocks):
-            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1, color=line_color).add_tip(tip_width=0.2, tip_length=0.2)
-            dashed_line_animations.append(Create(dashed_line))
-            dashed_line_animations.append(Write(Paragraph("concatenation","(skip connection)", alignment='center').scale(0.3).next_to(dashed_line, UP*0.25)))
-
         arrow_shift = 0.065
         def create_block_to_block_line_down(block1, block2):
             line = Line(block1.get_bottom() + RIGHT*arrow_shift, (block1.get_bottom()[0], block2.get_center()[1], 0)+ RIGHT*arrow_shift, color=line_color)
@@ -1510,17 +1543,30 @@ class UNet(MovingCameraScene):
         up_lines.add(create_block_to_block_line_up(up_blocks[1][1], up_blocks[0][0]))
 
         self.play(FadeIn(down_lines), FadeIn(up_lines))
+
         self.wait(2)
 
-        self.play(*dashed_line_animations)
-        self.wait(2)
+        image_shift_factor = 0.5
+        noised_image1 = ImageMobject("resources/images/pixelated/noised/48x48pixelated_noised.png").scale(0.3).next_to(
+            down_block1, LEFT * image_shift_factor)
+        noised_image2 = ImageMobject("resources/images/pixelated/noised/32x32pixelated_noised.png").scale(0.3).next_to(
+            down_block2, LEFT * image_shift_factor)
+        noised_image3 = ImageMobject("resources/images/pixelated/noised/16x16pixelated_noised.png").scale(0.4).next_to(
+            down_block3, LEFT * image_shift_factor)
+        noised_image4 = ImageMobject("resources/images/pixelated/noised/8x8pixelated_noised.png").scale(0.5).next_to(
+            middle_block, LEFT * image_shift_factor)
+
+        self.play(FadeIn(noised_image1))
+        self.play(FadeTransform(noised_image1, noised_image2))
+        self.play(FadeTransform(noised_image2, noised_image3))
+        self.play(FadeTransform(noised_image3, noised_image4))
 
         timestep_lines = VGroup()
 
         main_timestep_line = Line(start=(down_block1.get_left()[0] - 0.5, middle_block.get_bottom()[1] - 0.5, 0), end=(up_blocks[0][0].get_bottom()[0], middle_block.get_bottom()[1] - 0.5, 0) + RIGHT*arrow_shift, color=TEAL)
 
         timestep_text = Paragraph("Timestep", "Embedding", alignment='center').scale(0.3).next_to(main_timestep_line, LEFT*0.5)
-        self.play(Create(main_timestep_line), Write(timestep_text))
+
 
         for block_left, block_right in zip(down_blocks, up_blocks):
             timestep_lines.add(Line(start=(block_left[0].get_bottom()[0], main_timestep_line.get_y(), 0), end=block_left[0].get_bottom(), color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
@@ -1533,9 +1579,6 @@ class UNet(MovingCameraScene):
             Line(start=(middle_block[2].get_bottom()[0], main_timestep_line.get_y(), 0),
                  end=middle_block[2].get_bottom(),
                  color=TEAL).add_tip(tip_width=0.1, tip_length=0.1))
-
-        self.play(FadeIn(timestep_lines))
-        self.wait(2)
 
         embedding_lines = VGroup()
 
@@ -1553,30 +1596,30 @@ class UNet(MovingCameraScene):
                  end=middle_block[1].get_bottom(),
                  color=PURPLE).add_tip(tip_width=0.1, tip_length=0.1))
 
-        embedding_image = ImageMobject("resources/images/iris_pixelated.png").scale(0.15).next_to(main_embedding_line, LEFT*0.5)
-        self.play(Create(main_embedding_line), FadeIn(embedding_image))
-        self.play(FadeIn(embedding_lines))
+        embedding_image = ImageMobject("resources/images/iris_pixelated.png").scale(0.15).next_to(main_embedding_line, LEFT*0.5).set_opacity(0)
+        self.play(Create(main_timestep_line), Write(timestep_text), Create(main_embedding_line), embedding_image.animate.set_opacity(1))
+        self.play(FadeIn(embedding_lines), FadeIn(timestep_lines))
 
         self.wait(2)
 
-        image_shift_factor = 0.5
-        noised_image1 = ImageMobject("resources/images/pixelated/noised/48x48pixelated_noised.png").scale(0.3).next_to(down_block1, LEFT*image_shift_factor)
-        noised_image2 = ImageMobject("resources/images/pixelated/noised/32x32pixelated_noised.png").scale(0.3).next_to(down_block2, LEFT*image_shift_factor)
-        noised_image3 = ImageMobject("resources/images/pixelated/noised/16x16pixelated_noised.png").scale(0.4).next_to(down_block3, LEFT*image_shift_factor)
-        noised_image4 = ImageMobject("resources/images/pixelated/noised/8x8pixelated_noised.png").scale(0.5).next_to(middle_block, LEFT*image_shift_factor)
+        dashed_line_animations = []
+        for block_left, block_right in zip(down_blocks, up_blocks):
+            dashed_line = DashedLine(block_left.get_right(), block_right.get_left(), dash_length=0.25, buff=0.1,
+                                     color=line_color).add_tip(tip_width=0.2, tip_length=0.2)
+            dashed_line_animations.append(Create(dashed_line))
+            dashed_line_animations.append(Write(
+                Paragraph("concatenation", "(skip connection)", alignment='center').scale(0.3).next_to(dashed_line,
+                                                                                                       UP * 0.25)))
+
+        self.play(*dashed_line_animations)
+        self.wait(2)
 
         unnoised_image1 = ImageMobject("resources/images/pixelated/48x48pixelated.png").scale(0.3).next_to(up_blocks[0], RIGHT*image_shift_factor)
         unnoised_image2 = ImageMobject("resources/images/pixelated/32x32pixelated.png").scale(0.3).next_to(up_blocks[1], RIGHT*image_shift_factor)
         unnoised_image3 = ImageMobject("resources/images/pixelated/16x16pixelated.png").scale(0.4).next_to(up_blocks[2], RIGHT*image_shift_factor)
         unnoised_image4 = ImageMobject("resources/images/pixelated/8x8pixelated.png").scale(0.5).next_to(middle_block, RIGHT*image_shift_factor)
 
-
         noised_image1_copy = noised_image1.copy()
-
-        self.play(FadeIn(noised_image1))
-        self.play(FadeTransform(noised_image1, noised_image2))
-        self.play(FadeTransform(noised_image2, noised_image3))
-        self.play(FadeTransform(noised_image3, noised_image4))
 
         self.play(FadeTransform(noised_image4, unnoised_image4))
         self.play(FadeTransform(unnoised_image4, unnoised_image3))
